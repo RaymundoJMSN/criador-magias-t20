@@ -346,6 +346,8 @@ footer a { color: var(--ouro); }
 .quadro { position: relative; height: calc(100vh - 46px); overflow: auto; z-index: 1; }
 .quadro .nao-achei { color: var(--texto-2); font-style: italic; padding: 30px; }
 .quadro-carta { position: absolute; width: min(430px, 92vw); cursor: grab; touch-action: none;
+  background: #120809; /* fundo sólido: título não mescla com a carta de trás */
+  border: 1px solid var(--borda); border-radius: 12px; padding: 10px 14px 14px;
   box-shadow: 0 18px 50px rgba(0, 0, 0, .75); }
 .quadro-carta .miolo { cursor: auto; max-height: 55vh; overflow-y: auto; }
 .quadro-carta.q-arrastando { cursor: grabbing; opacity: .92; }

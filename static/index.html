@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Criador de Magias — Tormenta 20</title>
+<meta name="description" content="Crie magias próprias de Tormenta 20 por compra de pontos, calibrado contra as magias oficiais.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700;900&family=Alegreya:ital,wght@0,400;0,500;0,700;1,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/style.css">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🕯️</text></svg>">
+</head>
+<body>
+<div class="brasa" aria-hidden="true"></div>
+
+<header>
+  <h1>Criador de Magias</h1>
+  <p class="sub">Tormenta 20 · 1º círculo · <b>10 pontos</b></p>
+  <div id="login">
+    <input id="nome-user" maxlength="40" placeholder="seu nome" autocomplete="off">
+    <button id="bt-entrar" class="bt">entrar</button>
+    <span id="quem" hidden><b id="quem-nome"></b> <button id="bt-sair" class="bt mini">sair</button></span>
+  </div>
+</header>
+
+<main id="builder">
+  <section class="col-form">
+
+    <fieldset class="painel">
+      <legend>A magia</legend>
+      <div class="linha">
+        <label>Nome <input id="m-nome" maxlength="40" placeholder="Lança de Cinzas"></label>
+        <label>Tipo <select id="m-tipo"><option>Arcana</option><option>Divina</option><option>Universal</option></select></label>
+        <label>Escola <select id="m-escola">
+          <option>Abjuração</option><option>Adivinhação</option><option>Convocação</option><option>Encantamento</option>
+          <option selected>Evocação</option><option>Ilusão</option><option>Necromancia</option><option>Transmutação</option>
+        </select></label>
+      </div>
+      <label class="bloco">Descrição (narrativa, não muda o custo)
+        <textarea id="m-desc" rows="3" maxlength="2000" placeholder="Como a magia se manifesta…"></textarea>
+      </label>
+    </fieldset>
+
+    <fieldset class="painel">
+      <legend>Eixos técnicos</legend>
+      <div class="linha eixos">
+        <label>Execução <select id="e-execucao" data-eixo="execucao"></select></label>
+        <label>Alcance <select id="e-alcance" data-eixo="alcance"></select></label>
+        <label>Duração <select id="e-duracao" data-eixo="duracao"></select></label>
+        <label>Resistência <select id="e-resistencia" data-eixo="resistencia"></select></label>
+      </div>
+      <div class="linha">
+        <label>Alvo <select id="e-alvo-tipo">
+          <option value="alvos">criaturas/objetos</option>
+          <option value="pessoal">você</option>
+          <option value="area">área</option>
+        </select></label>
+        <label id="wrap-qtd">Quantos <select id="e-alvo-qtd">
+          <option value="1">1 alvo</option><option value="2">2 alvos</option><option value="3">3 alvos</option>
+          <option value="escolhidas">escolhidos (à vontade)</option>
+        </select></label>
+        <label id="wrap-area" hidden>Tamanho <select id="e-area">
+          <option value="p">pequena (cone 6m / linha 9m / esfera 3m)</option>
+          <option value="m">média (cone 9m / esfera 6m)</option>
+          <option value="g">grande (esfera 9m+ / quadrado 18m)</option>
+        </select></label>
+      </div>
+    </fieldset>
+
+    <fieldset class="painel">
+      <legend>Efeitos</legend>
+      <div class="efeito">
+        <label class="chk"><input type="checkbox" id="f-dano"> Dano</label>
+        <span id="dano-campos" hidden>
+          <select id="dano-n"><option>1</option><option selected>2</option><option>3</option><option>4</option></select> d
+          <select id="dano-faces"><option>4</option><option selected>6</option><option>8</option><option>10</option><option>12</option></select> +
+          <select id="dano-fixo"><option>0</option><option>1</option><option>2</option><option>3</option><option>4</option></select>
+          de <select id="dano-tipo"><option>fogo</option><option>frio</option><option>eletricidade</option><option>ácido</option>
+            <option>luz</option><option>trevas</option><option>essência</option><option>corte</option><option>impacto</option><option>perfuração</option><option>psíquico</option></select>
+        </span>
+      </div>
+      <div class="efeito">
+        <label class="chk"><input type="checkbox" id="f-cura"> Cura</label>
+        <span id="cura-campos" hidden>
+          <select id="cura-n"><option>1</option><option selected>2</option><option>3</option><option>4</option></select> d
+          <select id="cura-faces"><option>4</option><option>6</option><option selected>8</option><option>10</option><option>12</option></select> +
+          <select id="cura-fixo"><option>0</option><option>1</option><option selected>2</option><option>3</option><option>4</option></select> PV
+        </span>
+      </div>
+      <div class="efeito">
+        <label class="chk"><input type="checkbox" id="f-bonus"> Bônus numérico</label>
+        <span id="bonus-campos" hidden>
+          +<select id="bonus-val"><option>1</option><option selected>2</option><option>3</option><option>4</option><option>5</option></select>
+          em <input id="bonus-em" maxlength="60" placeholder="Defesa, ataque, uma perícia…">
+        </span>
+      </div>
+      <div class="efeito">
+        <label class="chk"><input type="checkbox" id="f-cond"> Condições</label>
+        <div id="cond-campos" class="chips" hidden></div>
+      </div>
+      <div class="efeito">
+        <label class="chk"><input type="checkbox" id="f-custom"> Efeito personalizado</label>
+        <div id="custom-campos" hidden>
+          <textarea id="custom-texto" rows="2" maxlength="1000" placeholder="Descreva o efeito (ex.: o alvo obedece um comando de uma palavra…)"></textarea>
+          <label class="inline">Custo combinado <input type="number" id="custom-pontos" min="0" max="20" step="0.5" value="0"> pontos
+            <button class="bt mini" id="bt-galeria">ver referências</button></label>
+        </div>
+      </div>
+    </fieldset>
+
+    <fieldset class="painel">
+      <legend>Aprimoramentos <span class="dica">(não gastam pontos — custam PM de quem conjura)</span></legend>
+      <div id="lista-apr"></div>
+      <div class="linha">
+        <select id="apr-modelo"></select>
+        <button class="bt" id="bt-add-apr">+ adicionar</button>
+      </div>
+    </fieldset>
+
+    <div class="acoes">
+      <button class="bt destaque" id="bt-salvar">salvar</button>
+      <button class="bt" id="bt-novo">nova magia</button>
+      <button class="bt" id="bt-copiar">copiar texto</button>
+      <button class="bt" id="bt-publicar">publicar</button>
+      <span id="msg" role="status"></span>
+    </div>
+  </section>
+
+  <aside class="col-preview">
+    <div class="medidor-wrap">
+      <div class="medidor"><div id="medidor-fill"></div><span id="medidor-txt">0 / 10</span></div>
+      <div id="avisos"></div>
+    </div>
+    <article class="carta" id="carta"></article>
+    <details class="partes"><summary>de onde vem o custo</summary><ul id="partes"></ul></details>
+  </aside>
+</main>
+
+<nav id="abas">
+  <button data-aba="minhas" class="aba ativa">minhas magias</button>
+  <button data-aba="publicadas" class="aba">publicadas</button>
+  <button data-aba="exemplos" class="aba">referências oficiais</button>
+</nav>
+<section id="galeria" class="painel"></section>
+
+<footer>Ferramenta de fã. Tormenta 20 pertence à Jambo Editora — nenhum texto oficial é reproduzido aqui.
+  <a href="https://github.com/RaymundoJMSN/criador-magias-t20">código</a></footer>
+
+<script type="module" src="/app.js"></script>
+</body>
+</html>

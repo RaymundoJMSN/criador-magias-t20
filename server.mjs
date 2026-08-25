@@ -1,0 +1,174 @@
+// Criador de Magias T20 — server Node puro (sem dependências).
+// node server.mjs [--check] | PORT=8070
+import http from "node:http";
+import { readFileSync, writeFileSync, renameSync, mkdirSync, existsSync, copyFileSync, readdirSync, unlinkSync } from "node:fs";
+import { join, dirname, extname } from "node:path";
+import { fileURLToPath } from "node:url";
+import { randomBytes } from "node:crypto";
+import { calcular } from "./static/custo.mjs";
+
+const RAIZ = dirname(fileURLToPath(import.meta.url));
+const DADOS = join(RAIZ, "dados");
+const ARQ = join(DADOS, "estado.json");
+const TABELA = JSON.parse(readFileSync(join(RAIZ, "data", "tabela-custos.json")));
+const PORT = Number(process.env.PORT || 8070);
+
+const MIME = { ".html": "text/html; charset=utf-8", ".js": "text/javascript", ".mjs": "text/javascript", ".css": "text/css", ".json": "application/json", ".png": "image/png", ".svg": "image/svg+xml", ".webmanifest": "application/manifest+json" };
+const MAX_MAGIAS = 200, MAX_BODY = 512 * 1024, MAX_NOME = 40;
+
+function carregar() {
+  try { return JSON.parse(readFileSync(ARQ, "utf-8")); }
+  catch { return { usuarios: {}, publicadas: {} }; }
+}
+
+const CHECK = process.argv.includes("--check");
+let estado = CHECK ? { usuarios: {}, publicadas: {} } : carregar();
+
+function salvar() {
+  if (CHECK) return; // self-test não toca disco
+  mkdirSync(DADOS, { recursive: true });
+  const hoje = new Date().toISOString().slice(0, 10);
+  const bk = join(DADOS, `backup-${hoje}.json`);
+  if (existsSync(ARQ) && !existsSync(bk)) {
+    copyFileSync(ARQ, bk);
+    const bks = readdirSync(DADOS).filter((f) => f.startsWith("backup-")).sort();
+    for (const velho of bks.slice(0, -7)) unlinkSync(join(DADOS, velho));
+  }
+  const tmp = ARQ + ".tmp";
+  writeFileSync(tmp, JSON.stringify(estado));
+  renameSync(tmp, ARQ); // escrita atômica
+}
+
+function nomeOk(n) {
+  return typeof n === "string" && n.length >= 1 && n.length <= MAX_NOME && !/[\\/<>"]/.test(n);
+}
+
+function validarMagia(m) {
+  if (typeof m !== "object" || !m) return "magia inválida";
+  if (!nomeOk(m.nome || "x")) return "nome inválido";
+  if (JSON.stringify(m).length > 20_000) return "magia grande demais";
+  if ((m.circulo || 1) !== 1) return "por enquanto só 1º círculo";
+  try { m.pontos = { gasto: calcular(m, TABELA).total, orcamento: TABELA.orcamento["1"] }; }
+  catch { return "estrutura de eixos/efeitos inválida"; }
+  return null;
+}
+
+function json(res, code, obj) {
+  const b = JSON.stringify(obj);
+  res.writeHead(code, { "content-type": "application/json; charset=utf-8" });
+  res.end(b);
+}
+
+function corpo(req) {
+  return new Promise((ok, err) => {
+    let b = "";
+    req.on("data", (c) => { b += c; if (b.length > MAX_BODY) { err(new Error("grande")); req.destroy(); } });
+    req.on("end", () => { try { ok(b ? JSON.parse(b) : {}); } catch { err(new Error("json")); } });
+  });
+}
+
+function estatico(res, caminho) {
+  try {
+    const c = readFileSync(caminho);
+    res.writeHead(200, { "content-type": MIME[extname(caminho)] || "application/octet-stream", "cache-control": "no-cache" });
+    res.end(c);
+  } catch { res.writeHead(404); res.end("404"); }
+}
+
+async function tratar(req, res) {
+  const url = new URL(req.url, "http://x");
+  const p = url.pathname;
+
+  if (p === "/api/state" && req.method === "GET") {
+    const user = url.searchParams.get("user") || "";
+    return json(res, 200, {
+      minhas: estado.usuarios[user] || [],
+      publicadas: Object.entries(estado.publicadas).map(([id, m]) => ({ id, ...m })),
+    });
+  }
+
+  if (p.startsWith("/api/user/") && req.method === "PUT") {
+    const nome = decodeURIComponent(p.slice("/api/user/".length));
+    if (!nomeOk(nome)) return json(res, 400, { erro: "nome inválido" });
+    let b;
+    try { b = await corpo(req); } catch { return json(res, 400, { erro: "corpo inválido" }); }
+    const magias = Array.isArray(b.magias) ? b.magias.slice(0, MAX_MAGIAS) : null;
+    if (!magias) return json(res, 400, { erro: "esperado {magias:[...]}" });
+    for (const m of magias) {
+      const e = validarMagia(m);
+      if (e) return json(res, 400, { erro: `${m?.nome || "?"}: ${e}` });
+    }
+    estado.usuarios[nome] = magias;
+    salvar();
+    return json(res, 200, { ok: true, n: magias.length });
+  }
+
+  if (p === "/api/publicar" && req.method === "POST") {
+    let b;
+    try { b = await corpo(req); } catch { return json(res, 400, { erro: "corpo inválido" }); }
+    const { autor, magia } = b;
+    if (!nomeOk(autor)) return json(res, 400, { erro: "autor inválido" });
+    const e = validarMagia(magia);
+    if (e) return json(res, 400, { erro: e });
+    if (magia.pontos.gasto > magia.pontos.orcamento) return json(res, 400, { erro: "estourou o orçamento — só rascunho" });
+    const id = randomBytes(4).toString("hex");
+    estado.publicadas[id] = { ...magia, autor, publicadaEm: new Date().toISOString() };
+    salvar();
+    return json(res, 200, { ok: true, id });
+  }
+
+  if (p === "/api/despublicar" && req.method === "POST") {
+    let b;
+    try { b = await corpo(req); } catch { return json(res, 400, { erro: "corpo inválido" }); }
+    const m = estado.publicadas[b.id];
+    if (!m) return json(res, 404, { erro: "não existe" });
+    if (m.autor !== b.autor) return json(res, 403, { erro: "só o autor despublica" });
+    delete estado.publicadas[b.id];
+    salvar();
+    return json(res, 200, { ok: true });
+  }
+
+  if (p.startsWith("/api/magia/") && req.method === "GET") {
+    const m = estado.publicadas[p.slice("/api/magia/".length)];
+    return m ? json(res, 200, m) : json(res, 404, { erro: "não existe" });
+  }
+
+  if (p.startsWith("/m/")) return estatico(res, join(RAIZ, "static", "index.html"));
+  if (p === "/") return estatico(res, join(RAIZ, "static", "index.html"));
+  if (p.startsWith("/data/")) return estatico(res, join(RAIZ, "data", p.slice(6).replace(/[^\w.-]/g, "")));
+  return estatico(res, join(RAIZ, "static", p.slice(1).replace(/[^\w./-]/g, "").replace(/\.\./g, "")));
+}
+
+const server = http.createServer((req, res) => {
+  tratar(req, res).catch((e) => { console.error(e); json(res, 500, { erro: "interno" }); });
+});
+
+if (CHECK) {
+  server.listen(0, async () => {
+    const base = `http://127.0.0.1:${server.address().port}`;
+    const falha = (msg) => { console.error("FALHOU:", msg); server.close(); process.exitCode = 1; };
+    try {
+      const magia = {
+        nome: "Teste", circulo: 1,
+        eixos: { execucao: "padrao", alcance: "curto", duracao: "instantanea", resistencia: "reduz-metade", alvo: { tipo: "alvos", qtd: 1 } },
+        efeitos: { dano: { n: 2, faces: 6 } },
+      };
+      const put = await fetch(`${base}/api/user/ray`, { method: "PUT", body: JSON.stringify({ magias: [magia] }) });
+      if (put.status !== 200) return falha("PUT " + put.status);
+      const st = await (await fetch(`${base}/api/state?user=ray`)).json();
+      if (st.minhas.length !== 1 || st.minhas[0].pontos.gasto !== 7) return falha("state: " + JSON.stringify(st.minhas[0]?.pontos));
+      const pub = await (await fetch(`${base}/api/publicar`, { method: "POST", body: JSON.stringify({ autor: "ray", magia }) })).json();
+      if (!pub.ok || !pub.id) return falha("publicar: " + JSON.stringify(pub));
+      const m = await (await fetch(`${base}/api/magia/${pub.id}`)).json();
+      if (m.nome !== "Teste") return falha("magia publicada errada");
+      const ruim = await fetch(`${base}/api/user/ray`, { method: "PUT", body: JSON.stringify({ magias: [{ nome: "x", circulo: 2 }] }) });
+      if (ruim.status !== 400) return falha("devia recusar 2º círculo");
+      const idx = await fetch(`${base}/m/${pub.id}`);
+      if (idx.status !== 200) return falha("/m/ não serviu index");
+      console.log("server.mjs --check OK");
+      server.close();
+    } catch (e) { falha(e.message); }
+  });
+} else {
+  server.listen(PORT, () => console.log(`Criador de Magias T20 em http://localhost:${PORT}`));
+}

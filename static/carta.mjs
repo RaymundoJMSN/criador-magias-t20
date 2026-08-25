@@ -70,7 +70,8 @@ export function substituir(textoHtml, m, negrito) {
     const fn = PLACEHOLDERS[chave];
     if (!fn) return tudo;
     const v = esc(fn(m));
-    return negrito ? `<b>${v}</b>` : v;
+    // efeitoespecial é um trecho de texto corrido, não um valor técnico: fica branco normal
+    return negrito && chave !== "efeitoespecial" ? `<b>${v}</b>` : v;
   });
 }
 

@@ -97,8 +97,9 @@ export function calcular(magia, tabela) {
     if (efeitos.dano) custo *= ef.condicao_rider_dano_mult ?? 0.5;
     partes.condicao = custo;
 
-    // travas do círculo (do corpus oficial)
-    if (travas.tier4_exige && tiers[0] >= 4) {
+    // travas do círculo (do corpus oficial) — só pra condição SEM dano;
+    // rider de dano em área é oficial (Detonação Congelante)
+    if (!efeitos.dano && travas.tier4_exige && tiers[0] >= 4) {
       const ok = alvo.tipo === "alvos" && !(Number(alvo.qtd) > travas.tier4_exige.alvos_max) &&
         alvo.qtd !== "escolhidas" && res === travas.tier4_exige.resistencia;
       if (!ok) {
@@ -106,7 +107,7 @@ export function calcular(magia, tabela) {
         avisos.push(`Condição incapacitante no ${magia.circulo || 1}º círculo só como o Sono oficial: 1 alvo e resistência ${travas.tier4_exige.resistencia}.`);
       }
     }
-    if (travas.tier_max_area && tiers[0] > travas.tier_max_area && (alvo.tipo === "area" || alvo.qtd === "escolhidas")) {
+    if (!efeitos.dano && travas.tier_max_area && tiers[0] > travas.tier_max_area && (alvo.tipo === "area" || alvo.qtd === "escolhidas")) {
       bloqueada = true;
       avisos.push(`Condição forte (tier ${tiers[0]}) em área/escolhidas não existe no ${magia.circulo || 1}º círculo — nenhuma oficial faz isso.`);
     }
@@ -116,7 +117,7 @@ export function calcular(magia, tabela) {
   if (travas.permanente_so_custom && eixos.duracao === "permanente" &&
       (efeitos.dano || efeitos.cura || efeitos.bonus || efeitos.penalidade || condicoes.length)) {
     bloqueada = true;
-    avisos.push("Duração permanente no 1º círculo só para efeito especial (com aprovação do mestre) — nunca para dano/cura/bônus/condição.");
+    avisos.push(`Duração permanente no ${magia.circulo || 1}º círculo só para efeito especial (com aprovação do mestre) — nunca para dano/cura/bônus/condição.`);
   }
 
   if (efeitos.custom && (efeitos.custom.texto || efeitos.custom.pontos)) {
@@ -125,12 +126,14 @@ export function calcular(magia, tabela) {
     if (partes.custom <= 0) avisos.push("Efeito custom sem preço: consulte a galeria de exemplos e combine com o mestre.");
   }
 
-  // cap de devolução (anti-empilhar desvantagem)
+  // cap de devolução (anti-empilhar desvantagem), por círculo
+  const maxDev = typeof t.max_devolvido === "object"
+    ? (t.max_devolvido[String(magia.circulo || 1)] ?? 4) : t.max_devolvido;
   const devolvidoBruto = Object.values(partes).filter((v) => v < 0).reduce((a, b) => a + b, 0);
   let ajusteCap = 0;
-  if (-devolvidoBruto > t.max_devolvido) {
-    ajusteCap = -devolvidoBruto - t.max_devolvido;
-    avisos.push(`Desvantagens devolvem no máximo ${t.max_devolvido} pontos (cortado ${ajusteCap}).`);
+  if (-devolvidoBruto > maxDev) {
+    ajusteCap = -devolvidoBruto - maxDev;
+    avisos.push(`Desvantagens devolvem no máximo ${maxDev} pontos (cortado ${ajusteCap}).`);
   }
 
   const total = Object.values(partes).reduce((a, b) => a + b, 0) + ajusteCap;
@@ -148,7 +151,7 @@ export function calcular(magia, tabela) {
 
   return {
     total, partes, orcamento, avisos, bloqueada,
-    devolvido: Math.max(devolvidoBruto, -t.max_devolvido),
+    devolvido: Math.max(devolvidoBruto, -maxDev),
     valido: total <= orcamento && !bloqueada,
   };
 }

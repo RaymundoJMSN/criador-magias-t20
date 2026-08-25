@@ -88,7 +88,7 @@ export function cartaHtml(m, r) {
     `<div><b>${a.truque ? "Truque" : "+" + a.pm + " PM"}:</b> ${esc(a.texto)}${a.requerCirculo ? ` <i>(requer ${a.requerCirculo}º círculo)</i>` : ""}</div>`).join("");
   return `
     <h2>${esc(m.nome) || "Sem Nome"}</h2>
-    <div class="tipo-linha">${esc(m.escola)} (${esc(m.tipo)}) — 1º círculo</div>
+    <div class="tipo-linha">${esc(m.escola)} (${esc(m.tipo)}) — ${m.circulo || 1}º círculo</div>
     <div class="miolo">
     <div class="stats">
       <b>Execução:</b> ${ROTULOS.execucao[m.eixos.execucao]}; <b>Alcance:</b> ${ROTULOS.alcance[m.eixos.alcance].replace(/ \(.+\)/, "")};

@@ -158,7 +158,7 @@ function grupoEixo(eixo, aoMudar) {
     box.append(cardOpcao({
       marcado: magia.eixos[eixo] === chave,
       titulo: rotulo, custo: TABELA.eixos[eixo][chave], explica: EXPLICA[eixo]?.[chave],
-      onclick: () => { magia.eixos[eixo] = chave; aoMudar?.(); atualizar(); },
+      onclick: () => { magia.eixos[eixo] = chave; (aoMudar || renderPasso)(); atualizar(); },
     }));
   }
   return box;
@@ -170,6 +170,9 @@ function passoBasico(box) {
     el("label", { className: "campo" }, "Nome da magia",
       el("input", { id: "w-nome", maxLength: 40, value: magia.nome, placeholder: "Lança de Cinzas", oninput: (e) => { magia.nome = e.target.value; atualizar(false); } })),
     el("div", { className: "campo-linha" },
+      el("label", { className: "campo" }, "Círculo",
+        el("select", { onchange: (e) => { magia.circulo = +e.target.value; renderPasso(); atualizar(); } },
+          ...[1, 2, 3, 4, 5].map((c) => el("option", { value: String(c), textContent: `${c}º círculo — ${TABELA.orcamento[String(c)]} pontos`, selected: (magia.circulo || 1) === c })))),
       el("label", { className: "campo" }, "Tipo",
         el("select", { onchange: (e) => { magia.tipo = e.target.value; atualizar(); } },
           ...["Arcana", "Divina", "Universal"].map((t) => el("option", { textContent: t, selected: magia.tipo === t })))),
@@ -221,9 +224,9 @@ function passoConfig(box) {
     box.append(el("div", { className: "sub-painel" },
       el("h3", {}, "💥 Dano"),
       el("div", { className: "campo-linha" },
-        seletor("quantos dados", ef.dano.n, [1, 2, 3, 4], (v) => (ef.dano.n = +v)),
+        seletor("quantos dados", ef.dano.n, [1, 2, 3, 4, 5, 6, 7, 8, 10, 12], (v) => (ef.dano.n = +v)),
         seletor("qual dado", ef.dano.faces, [4, 6, 8, 10, 12], (v) => (ef.dano.faces = +v)),
-        seletor("+ fixo", ef.dano.fixo, [0, 1, 2, 3, 4], (v) => (ef.dano.fixo = +v)),
+        seletor("+ fixo", ef.dano.fixo, [0, 1, 2, 3, 4, 5, 6, 8, 10], (v) => (ef.dano.fixo = +v)),
         seletor("tipo", ef.dano.tipo, TIPOS_DANO, (v) => (ef.dano.tipo = v)),
       ),
       el("p", { className: "explica", textContent: `cada d${ef.dano.faces} custa ${custoDado(ef.dano.faces)} pts · cada +1 fixo custa ${TABELA.efeitos.dano_fixo_por_ponto} pt · referência oficial: 2d6 num alvo, 2d8+2 no toque` }),
@@ -233,9 +236,9 @@ function passoConfig(box) {
     box.append(el("div", { className: "sub-painel" },
       el("h3", {}, "✚ Cura"),
       el("div", { className: "campo-linha" },
-        seletor("quantos dados", ef.cura.n, [1, 2, 3, 4], (v) => (ef.cura.n = +v)),
+        seletor("quantos dados", ef.cura.n, [1, 2, 3, 4, 5, 6, 7, 8, 10, 12], (v) => (ef.cura.n = +v)),
         seletor("qual dado", ef.cura.faces, [4, 6, 8, 10, 12], (v) => (ef.cura.faces = +v)),
-        seletor("+ fixo", ef.cura.fixo, [0, 1, 2, 3, 4], (v) => (ef.cura.fixo = +v)),
+        seletor("+ fixo", ef.cura.fixo, [0, 1, 2, 3, 4, 5, 6, 8, 10], (v) => (ef.cura.fixo = +v)),
       ),
       el("p", { className: "explica", textContent: "referência oficial: Curar Ferimentos = 2d8+2 no toque" }),
     ));
@@ -599,7 +602,7 @@ async function chamarIA(system, userMsg, maxTokens = 2000) {
   }
 }
 
-const REGUA_IA = () => `Régua calibrada nas magias oficiais de Tormenta 20 (1º círculo = 10 pontos no total; alcance/duração/área/resistência são pagos à parte dos efeitos): dano 2d6 ≈ 6 pts; condição fraca 2, média 5, forte 8, incapacitante 12 (metade se há teste); bônus +1=2/+2=5/+3=9; efeito utilitário mediano ≈ ${TABELA.efeitos.utilitario_base} pts. Aprimoramentos custam PM (não pontos): +1 PM ≈ +1 dado de dano/+1 alvo; trilho de círculo: magia de 1º com aprimoramento que soma 3+ PM equivale a 2º círculo (6=3º, 10=4º, 15=5º) e deve levar "requer Xº círculo".`;
+const REGUA_IA = () => `Régua calibrada nas magias oficiais de Tormenta 20 (orçamentos por círculo: 1º=10, 2º=18, 3º=25, 4º=34, 5º=45 pontos; esta magia é de ${magia.circulo || 1}º círculo = ${TABELA.orcamento[String(magia.circulo || 1)]} pontos; alcance/duração/área/resistência são pagos à parte dos efeitos): dano 2d6 ≈ 6 pts; condição fraca 2, média 5, forte 8, incapacitante 12 (metade se há teste); bônus +1=2/+2=5/+3=9; efeito utilitário mediano ≈ ${TABELA.efeitos.utilitario_base} pts. Aprimoramentos custam PM (não pontos): +1 PM ≈ +1 dado de dano/+1 alvo; trilho de círculo: magia de 1º com aprimoramento que soma 3+ PM equivale a 2º círculo (6=3º, 10=4º, 15=5º) e deve levar "requer Xº círculo".`;
 
 async function sugerirPrecoIA() {
   const out = $("#ia-res");
@@ -708,7 +711,7 @@ ${aprsTxt}`,
 // ============================================================ carta: ver carta.mjs
 function textoPlano(m, r) {
   const linhas = [
-    `${(m.nome || "Sem Nome").toUpperCase()} (${m.escola} ${m.tipo} 1)`,
+    `${(m.nome || "Sem Nome").toUpperCase()} (${m.escola} ${m.tipo} ${m.circulo || 1})`,
     `Execução: ${ROTULOS.execucao[m.eixos.execucao]}; Alcance: ${ROTULOS.alcance[m.eixos.alcance].replace(/ \(.+\)/, "")}; Alvo: ${textoAlvo(m)}; Duração: ${ROTULOS.duracao[m.eixos.duracao]}; Resistência: ${textoResistencia(m)}`,
   ];
   if (m.descricao) linhas.push(substituir(htmlParaTexto(m.descricao), m));
@@ -760,6 +763,8 @@ function atualizar(rerender = true) {
   const pct = Math.min(100, (Math.max(0, r.total) / r.orcamento) * 100);
   $("#medidor-fill").style.width = pct + "%";
   $("#medidor-txt").textContent = `${r.total} / ${r.orcamento} pontos`;
+  $("#sub-circ").textContent = `${magia.circulo || 1}º círculo`;
+  $("#sub-orc").textContent = `${r.orcamento} pontos`;
   $(".medidor").classList.toggle("estourou", !r.valido);
   $("#avisos").replaceChildren(...r.avisos.map((a) => el("div", { textContent: a })));
   $("#partes").replaceChildren(...Object.entries(r.partes).filter(([, v]) => v !== 0)
@@ -874,7 +879,7 @@ function abrirAba(aba) {
         el("div", { className: "meta", textContent: `${m.escola} · por ${m.autor}` }));
     }
   } else {
-    g.append(el("div", { className: "vazio", textContent: "As 101 magias oficiais de 1º círculo reconstruídas. Clique pra ler o texto oficial e comparar; nas de efeito especial dá pra usar o preço como referência." }));
+    g.append(el("div", { className: "vazio", textContent: "As 101 magias oficiais de 1º círculo reconstruídas. Clique pra ler o texto oficial e comparar; nas de efeito especial dá pra usar o preço como referência." + ((magia.circulo || 1) > 1 ? " (Sua magia é de " + magia.circulo + "º círculo — escale o preço proporcionalmente ao orçamento.)" : "") }));
     const todas = [
       ...EXEMPLOS.utilitarias.map((ex) => ({ ...ex, badge: `efeito ≈ ${ex.preco_efeito}pt` })),
       ...EXEMPLOS.numericas.map((ex) => ({ ...ex, badge: `total ${ex.total}pt` })),

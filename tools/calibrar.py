@@ -117,6 +117,13 @@ def resumo(nome, custos):
 
 def main():
     ds = json.loads(DATASET.read_text(encoding="utf-8"))
+    for circ in range(2, 6):
+        ms = [m for m in ds["magias"] if m["circulo"] == circ]
+        nums = [reconstruir(m)[0] for m in ms if eh_numerica(m)]
+        alvo = TABELA["orcamento"][str(circ)]
+        dentro = sum(1 for c in nums if alvo - 3 <= c <= alvo + 3)
+        print(f"[{circ}o] orcamento={alvo} numericas n={len(nums)} mediana={statistics.median(nums):.1f} "
+              f"na faixa +-3: {100 * dentro // max(1, len(nums))}%")
     c1 = [m for m in ds["magias"] if m["circulo"] == 1]
     orc = TABELA["orcamento"]["1"]
 

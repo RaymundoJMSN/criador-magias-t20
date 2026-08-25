@@ -1,10 +1,20 @@
 {
- "versao": 5,
+ "versao": 6,
  "comentario": "Precos em pontos de construcao. Ancorados na tarifa de PM dos aprimoramentos oficiais (1 ponto ~ 1 PM de aprimoramento) e calibrados por tools/calibrar.py contra as 101 magias de 1o circulo.",
  "orcamento": {
-  "1": 10
+  "1": 10,
+  "2": 18,
+  "3": 25,
+  "4": 34,
+  "5": 45
  },
- "max_devolvido": 4,
+ "max_devolvido": {
+  "1": 4,
+  "2": 5,
+  "3": 6,
+  "4": 7,
+  "5": 8
+ },
  "eixos": {
   "execucao": {
    "padrao": 0,
@@ -184,7 +194,19 @@
     "resistencia": "anula"
    },
    "permanente_so_custom": true,
-   "comentario": "corpus oficial: tier 4 no 1o circulo so existe como Sono (1 alvo, Vontade anula); tier 3+ nunca em area; permanente numerico nao existe no 1o"
-  }
- }
+   "comentario": "so vale para condicao SEM dano (rider de dano e livre — Detonacao Congelante e oficial)"
+  },
+  "2": {
+   "tier_max_area": 2,
+   "tier4_exige": {
+    "alvos_max": 1,
+    "resistencia": "anula"
+   },
+   "permanente_so_custom": true
+  },
+  "3": {},
+  "4": {},
+  "5": {}
+ },
+ "comentario_orcamento": "medianas das oficiais reconstruidas: 9/17.5/23/33.5/(p75=51, n=12 ruidoso) -> 10/18/25/34/45"
 }

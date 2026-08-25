@@ -48,8 +48,8 @@ function validarMagia(m) {
   if (typeof m !== "object" || !m) return "magia inválida";
   if (!nomeOk(m.nome || "x")) return "nome inválido";
   if (JSON.stringify(m).length > 20_000) return "magia grande demais";
-  if ((m.circulo || 1) !== 1) return "por enquanto só 1º círculo";
-  try { m.pontos = { gasto: calcular(m, TABELA).total, orcamento: TABELA.orcamento["1"] }; }
+  if (![1, 2, 3, 4, 5].includes(m.circulo || 1)) return "círculo deve ser 1 a 5";
+  try { m.pontos = { gasto: calcular(m, TABELA).total, orcamento: TABELA.orcamento[String(m.circulo || 1)] }; }
   catch { return "estrutura de eixos/efeitos inválida"; }
   return null;
 }
@@ -261,8 +261,11 @@ if (CHECK) {
       if (!pub.ok || !pub.id) return falha("publicar: " + JSON.stringify(pub));
       const m = await (await fetch(`${base}/api/magia/${pub.id}`)).json();
       if (m.nome !== "Teste") return falha("magia publicada errada");
-      const ruim = await fetch(`${base}/api/user/ray`, { method: "PUT", body: JSON.stringify({ magias: [{ nome: "x", circulo: 2 }] }) });
-      if (ruim.status !== 400) return falha("devia recusar 2º círculo");
+      const ruim = await fetch(`${base}/api/user/ray`, { method: "PUT", body: JSON.stringify({ magias: [{ nome: "x", circulo: 7 }] }) });
+      if (ruim.status !== 400) return falha("devia recusar círculo 7");
+      // 3º círculo aceito (lista mantém a publicada pra não despublicar)
+      const c3 = await fetch(`${base}/api/user/ray`, { method: "PUT", body: JSON.stringify({ magias: [{ ...magia, id: pub.id }, { ...magia, id: "abcd1234", nome: "Teste3", circulo: 3 }] }) });
+      if (c3.status !== 200) return falha("devia aceitar 3º círculo: " + (await c3.json()).erro);
       const idx = await fetch(`${base}/m/${pub.id}`);
       const pagina = await idx.text();
       if (idx.status !== 200 || !pagina.includes("Teste")) return falha("/m/ não rendeu a magia");

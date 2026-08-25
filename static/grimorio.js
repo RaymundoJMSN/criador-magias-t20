@@ -14,7 +14,8 @@ const ESCOLAS = ["Abjuração", "Adivinhação", "Convocação", "Encantamento",
 const FONTES = [["oficiais", "📕 oficiais"], ["mesa", "🔗 da mesa"]];
 
 export function montarGrimorio(raiz, { compacto = false, qInicial = "", abrir = null, aoEscolher = null } = {}) {
-  const filtro = { circulo: null, tipo: null, escola: null, fonte: null, q: qInicial };
+  // filtros multi-seleção (vazio = todos); Arcana e Divina são exclusivas entre si
+  const filtro = { circulo: new Set(), tipo: new Set(), escola: new Set(), fonte: new Set(), q: qInicial };
   let TUDO = { oficiais: [], publicadas: [] };
   let buscaTimer;
 
@@ -28,26 +29,35 @@ export function montarGrimorio(raiz, { compacto = false, qInicial = "", abrir = 
   const lista = el("div", { className: "grimorio-lista" });
   raiz.append(busca, boxFiltros, conta, lista);
 
+  const EXCLUSIVOS = { Arcana: "Divina", Divina: "Arcana" }; // não se misturam
   function chips(itens, chave, rotulo = (x) => String(x)) {
     const box = el("div", { className: "chips" });
+    const botoes = new Map();
     for (const item of itens) {
       const valor = Array.isArray(item) ? item[0] : item;
-      box.append(el("button", {
+      const b = el("button", {
         type: "button", className: "chip",
         textContent: Array.isArray(item) ? item[1] : rotulo(item),
-        onclick: (e) => {
-          filtro[chave] = filtro[chave] === valor ? null : valor;
-          box.querySelectorAll(".chip").forEach((c) => c.classList.remove("on"));
-          if (filtro[chave] !== null) e.currentTarget.classList.add("on");
+        onclick: () => {
+          const sel = filtro[chave];
+          if (sel.has(valor)) sel.delete(valor);
+          else {
+            const oposto = chave === "tipo" && EXCLUSIVOS[valor];
+            if (oposto && sel.has(oposto)) { sel.delete(oposto); botoes.get(oposto).classList.remove("on"); }
+            sel.add(valor);
+          }
+          b.classList.toggle("on", sel.has(valor));
           render();
         },
-      }));
+      });
+      botoes.set(valor, b);
+      box.append(b);
     }
     boxFiltros.append(box);
   }
   chips(CIRCULOS, "circulo", (c) => `${c}º`);
   chips(TIPOS, "tipo");
-  if (!compacto) chips(ESCOLAS, "escola");
+  chips(ESCOLAS, "escola");
   chips(FONTES, "fonte");
 
   async function buscar() {
@@ -59,10 +69,10 @@ export function montarGrimorio(raiz, { compacto = false, qInicial = "", abrir = 
   }
 
   const passa = (m, fonte) =>
-    (!filtro.circulo || m.circulo === filtro.circulo) &&
-    (!filtro.tipo || m.grupo === filtro.tipo) &&
-    (!filtro.escola || m.escola === filtro.escola) &&
-    (!filtro.fonte || filtro.fonte === fonte);
+    (!filtro.circulo.size || filtro.circulo.has(m.circulo)) &&
+    (!filtro.tipo.size || filtro.tipo.has(m.grupo)) &&
+    (!filtro.escola.size || filtro.escola.has(m.escola)) &&
+    (!filtro.fonte.size || filtro.fonte.has(fonte));
 
   function render() {
     lista.replaceChildren();

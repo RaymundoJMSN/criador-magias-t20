@@ -465,6 +465,7 @@ function passoAprimoramentos(box) {
         el("option", { value: "", textContent: "requer: —", selected: !ap.requerCirculo }),
         ...[2, 3, 4, 5].map((c) => el("option", { value: String(c), textContent: `requer ${c}º`, selected: ap.requerCirculo === c })));
       lista.append(el("div", { className: "apr-item" },
+        alcaDeArrasto(lista, ap),
         ap.truque ? el("b", { className: "pm-fixo" }, "Truque") :
           el("input", { className: "pm", type: "number", min: 0, max: 15, value: ap.pm, onchange: (e) => { ap.pm = +e.target.value; renderPasso(); atualizar(); } }),
         ap.truque ? null : el("span", {}, "PM"),
@@ -476,9 +477,41 @@ function passoAprimoramentos(box) {
             (!ap.requerCirculo && trilho > 1 ? `${ap.fonte ? " · " : ""}PM sugere ${trilho}º` : ""))),
         el("button", { className: "bt mini", textContent: "×", onclick: () => { magia.aprimoramentos.splice(i, 1); renderPasso(); atualizar(); } }),
       ));
+      lista.lastElementChild.__ap = ap;
     });
-    box.append(el("h3", { className: "sub-perg", textContent: "Os desta magia:" }), lista);
+    box.append(el("h3", { className: "sub-perg", textContent: "Os desta magia (⠿ arrasta pra reordenar):" }), lista);
   }
+}
+
+// alça ⠿: arrastar item pra cima/baixo (mouse e toque) e gravar a nova ordem
+function alcaDeArrasto(lista) {
+  const alca = el("span", { className: "apr-alca", textContent: "⠿", title: "arraste pra reordenar" });
+  alca.addEventListener("pointerdown", (e) => {
+    e.preventDefault();
+    const item = alca.closest(".apr-item");
+    item.classList.add("arrastando");
+    alca.setPointerCapture(e.pointerId);
+    const aoMover = (ev) => {
+      const alvo = [...lista.children].find((c) => {
+        if (c === item) return false;
+        const r = c.getBoundingClientRect();
+        return ev.clientY > r.top && ev.clientY < r.bottom;
+      });
+      if (!alvo) return;
+      const r = alvo.getBoundingClientRect();
+      lista.insertBefore(item, ev.clientY < r.top + r.height / 2 ? alvo : alvo.nextSibling);
+    };
+    const aoSoltar = () => {
+      item.classList.remove("arrastando");
+      alca.removeEventListener("pointermove", aoMover);
+      alca.removeEventListener("pointerup", aoSoltar);
+      magia.aprimoramentos = [...lista.children].map((c) => c.__ap);
+      renderPasso(); atualizar();
+    };
+    alca.addEventListener("pointermove", aoMover);
+    alca.addEventListener("pointerup", aoSoltar);
+  });
+  return alca;
 }
 
 // ---------------------------------------------------------------- passo 9
@@ -731,7 +764,14 @@ async function sincronizar() {
   try {
     const st = await (await fetch(`/api/state?user=${encodeURIComponent(user)}`)).json();
     minhas = st.minhas;
-    for (const m of minhas) if (!m.id) m.id = idNovo();
+    let ganhouId = false;
+    for (const m of minhas) if (!m.id) {
+      // magia antiga sem id: se existe publicada homônima minha, é a MESMA magia
+      const pub = (st.publicadas || []).find((p2) => p2.autor === user && p2.nome === m.nome);
+      m.id = pub?.id || idNovo();
+      ganhouId = true;
+    }
+    if (ganhouId) await fetch(`/api/user/${encodeURIComponent(user)}`, { method: "PUT", body: JSON.stringify({ magias: minhas }) });
     window.__publicadas = st.publicadas;
     abrirAba(abaAtiva);
   } catch {}
@@ -740,11 +780,11 @@ async function sincronizar() {
 async function salvarServidor() {
   if (!user) return aviso("entre com seu nome (lá em cima) pra salvar", true);
   const r = atualizar(false);
-  const i = minhas.findIndex((x) => x.criadaEm === magia.criadaEm);
+  const i = minhas.findIndex((x) => x.id === magia.id);
   if (i >= 0) minhas[i] = magia; else minhas.push(magia);
   const j = await (await fetch(`/api/user/${encodeURIComponent(user)}`, { method: "PUT", body: JSON.stringify({ magias: minhas }) })).json();
-  j.ok ? aviso(`salvo (${r.total}/${r.orcamento} pts)`) : aviso(j.erro || "erro ao salvar", true);
-  abrirAba(abaAtiva);
+  j.ok ? aviso(`salvo (${r.total}/${r.orcamento} pts)` + (estaPublicada() ? " — publicada atualizada junto" : "")) : aviso(j.erro || "erro ao salvar", true);
+  await sincronizar();
 }
 
 const linkDaMagia = () => `${location.origin}/m/${magia.id}`;
@@ -755,6 +795,9 @@ async function publicar() {
   const r = calcular(magia, TABELA);
   if (!r.valido) return aviso("estourou o orçamento — ajuste antes de publicar", true);
   if (!magia.nome) return aviso("dê um nome à magia", true);
+  const i = minhas.findIndex((x) => x.id === magia.id);
+  if (i >= 0) minhas[i] = magia; else minhas.push(magia);
+  await fetch(`/api/user/${encodeURIComponent(user)}`, { method: "PUT", body: JSON.stringify({ magias: minhas }) });
   const j = await (await fetch("/api/publicar", { method: "POST", body: JSON.stringify({ autor: user, magia }) })).json();
   if (j.ok) {
     navigator.clipboard?.writeText(linkDaMagia());
@@ -780,12 +823,13 @@ function abrirAba(aba) {
 
   if (aba === "minhas") {
     if (!minhas.length) return g.append(el("div", { className: "vazio", textContent: user ? "nenhuma magia salva ainda" : "entre com seu nome pra ver suas magias" }));
+    const pubIds = new Set((window.__publicadas || []).map((p2) => p2.id));
     for (const m of minhas) {
       const r = calcular(m, TABELA);
       add({ onclick: () => { magia = m; passoAtual = passosVisiveis().length - 1; renderPasso(); atualizar(); scrollTo({ top: 0, behavior: "smooth" }); } },
         el("h3", { textContent: m.nome || "Sem Nome" }),
         el("span", { className: "custo", textContent: `${r.total}pt` }),
-        el("div", { className: "meta", textContent: `${m.escola} · ${m.tipo}` }),
+        el("div", { className: "meta", textContent: `${m.escola} · ${m.tipo}` + (pubIds.has(m.id) ? " · 🔗 publicada" : "") }),
         el("div", { className: "acoes-card" },
           el("button", { className: "bt mini", textContent: "apagar", onclick: async (ev) => { ev.stopPropagation(); minhas = minhas.filter((x) => x !== m); if (user) await fetch(`/api/user/${encodeURIComponent(user)}`, { method: "PUT", body: JSON.stringify({ magias: minhas }) }); abrirAba("minhas"); } })));
     }

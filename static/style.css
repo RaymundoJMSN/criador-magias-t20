@@ -294,3 +294,9 @@ footer a { color: var(--ouro); }
 .sug-depois { border-top: 1px dashed rgba(201, 162, 39, .2); color: var(--texto); }
 .apr-lado { display: flex; flex-direction: column; gap: 4px; max-width: 150px; }
 .apr-item .requer { font-size: .82rem; padding: 4px 6px; }
+
+/* alça de arrasto dos aprimoramentos */
+.apr-alca { cursor: grab; touch-action: none; user-select: none; color: var(--texto-2);
+  padding: 8px 6px 8px 0; font-size: 1.05rem; line-height: 1; align-self: center; }
+.apr-alca:active { cursor: grabbing; color: var(--ouro); }
+.apr-item.arrastando { opacity: .65; background: rgba(201, 162, 39, .1); border-radius: 8px; }

@@ -100,6 +100,16 @@ async function tratar(req, res) {
       if (e) return json(res, 400, { erro: `${m?.nome || "?"}: ${e}` });
     }
     estado.usuarios[nome] = magias;
+    // magia publicada É a mesma magia: editar a sua atualiza a publicada, apagar despublica
+    const idsAgora = new Set(magias.map((m) => m.id).filter(Boolean));
+    for (const [id, pub] of Object.entries(estado.publicadas)) {
+      if (pub.autor !== nome) continue;
+      if (!idsAgora.has(id)) delete estado.publicadas[id];
+    }
+    for (const m of magias) {
+      const pub = m.id && estado.publicadas[m.id];
+      if (pub && pub.autor === nome) estado.publicadas[m.id] = { ...m, autor: nome, publicadaEm: pub.publicadaEm };
+    }
     salvar();
     return json(res, 200, { ok: true, n: magias.length });
   }

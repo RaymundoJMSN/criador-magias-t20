@@ -1,0 +1,160 @@
+{
+ "versao": 3,
+ "comentario": "Precos em pontos de construcao. Ancorados na tarifa de PM dos aprimoramentos oficiais (1 ponto ~ 1 PM de aprimoramento) e calibrados por tools/calibrar.py contra as 101 magias de 1o circulo.",
+ "orcamento": {
+  "1": 10
+ },
+ "max_devolvido": 4,
+ "eixos": {
+  "execucao": {
+   "padrao": 0,
+   "movimento": 2,
+   "livre": 3,
+   "reacao": 2,
+   "completa": -2,
+   "longa": -3
+  },
+  "alcance": {
+   "pessoal": -2,
+   "toque": -1,
+   "curto": 0,
+   "medio": 1,
+   "longo": 2,
+   "ilimitado": 4
+  },
+  "duracao": {
+   "instantanea": 0,
+   "1rodada": -1,
+   "sustentada": 0,
+   "cena": 1,
+   "1dia": 2,
+   "permanente": 5
+  },
+  "resistencia": {
+   "nenhuma": 2,
+   "desacredita": 1,
+   "reduz-metade": 1,
+   "parcial": 0,
+   "anula": -1,
+   "especial": 0
+  },
+  "alvo": {
+   "pessoal": -1,
+   "1alvo": 0,
+   "alvo_extra": 2,
+   "escolhidas": 4,
+   "area_p": 2,
+   "area_m": 3,
+   "area_g": 5
+  }
+ },
+ "areas": {
+  "comentario": "area_p: cone/linha/esfera ate 6m equivalente; area_m: esfera 6m+/cilindro; area_g: 9m+ de raio ou quadrado 18m",
+  "p_max_m": {
+   "cone": 6,
+   "linha": 9,
+   "esfera": 3,
+   "cilindro": 3,
+   "nuvem": 3,
+   "quadrado": 3,
+   "cubo": 3
+  },
+  "m_max_m": {
+   "cone": 9,
+   "linha": 30,
+   "esfera": 6,
+   "cilindro": 9,
+   "nuvem": 6,
+   "quadrado": 9,
+   "cubo": 9
+  }
+ },
+ "efeitos": {
+  "dano_por_dado": {
+   "4": 2.0,
+   "6": 3.0,
+   "8": 4.0,
+   "10": 5.0,
+   "12": 6.0
+  },
+  "dano_fixo_por_ponto": 1.0,
+  "cura_por_dado": {
+   "4": 2.0,
+   "6": 3.0,
+   "8": 4.0,
+   "10": 5.0,
+   "12": 6.0
+  },
+  "cura_fixa_por_ponto": 1.0,
+  "condicoes_tier": {
+   "1": [
+    "abalado",
+    "ofuscado",
+    "pasmo",
+    "surdo",
+    "distraido",
+    "sangrando"
+   ],
+   "2": [
+    "lento",
+    "enjoado",
+    "fraco",
+    "fatigado",
+    "vulneravel",
+    "frustrado",
+    "esmorecido",
+    "caido",
+    "agarrado",
+    "em chamas",
+    "fascinado",
+    "doente",
+    "envenenado",
+    "alquebrado"
+   ],
+   "3": [
+    "atordoado",
+    "apavorado",
+    "imovel",
+    "debilitado",
+    "exausto",
+    "cego",
+    "confuso",
+    "enredado"
+   ],
+   "4": [
+    "paralisado",
+    "inconsciente",
+    "indefeso",
+    "petrificado"
+   ]
+  },
+  "condicao_custo_por_tier": {
+   "1": 2,
+   "2": 5,
+   "3": 8,
+   "4": 12
+  },
+  "condicao_so_na_falha_mult": 0.5,
+  "condicao_1rodada_delta": -1,
+  "utilitario_base": 8,
+  "comentario_utilitario": "Efeito nao-numerico (voo, invisibilidade, ilusao, comando...) entra como efeito custom precificado; 6 = mediana p/ utilitario de 1o circulo, galeria de exemplos da a regua fina.",
+  "bonus_escalonado": [
+   2,
+   5,
+   9,
+   14,
+   20
+  ],
+  "comentario_bonus": "custo cumulativo por ponto de bonus: +1=2, +2=5, +3=9... (anti-empilhamento)"
+ },
+ "aprimoramentos": {
+  "trilho_pm_circulo": {
+   "1": 1,
+   "2": 3,
+   "3": 6,
+   "4": 10,
+   "5": 15
+  },
+  "tarifas_fonte": "data/tarifas-pm.json"
+ }
+}

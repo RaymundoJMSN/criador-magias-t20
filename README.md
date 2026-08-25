@@ -1,0 +1,39 @@
+# Criador de Magias T20
+
+Crie magias próprias de **Tormenta 20** por compra de pontos, com balanceamento calibrado
+contra as 275 magias oficiais. Online em [magias.raynathus.com.br](https://magias.raynathus.com.br).
+
+## Como funciona
+
+- Toda magia de 1º círculo tem **10 pontos** de orçamento. Cada escolha técnica (dado de
+  dano, alcance, área, duração, resistência, condição...) custa ou devolve pontos, com
+  preços em [`data/tabela-custos.json`](data/tabela-custos.json).
+- Desvantagens (toque, execução completa...) devolvem no máximo **−4**.
+- **Aprimoramentos** não gastam pontos: pagam-se em PM pela tarifa minerada dos ~750
+  aprimoramentos oficiais ([`data/tarifas-pm.json`](data/tarifas-pm.json)), com o trilho
+  de círculo do jogo (1 PM=1º, 3=2º, 6=3º, 10=4º, 15=5º).
+- **Efeito custom**: descreva o efeito e precifique com a galeria de referência
+  ([`data/exemplos.json`](data/exemplos.json)) — preços derivados das magias oficiais.
+  Aprovação final é sempre do mestre.
+
+## Mineração / calibração
+
+`tools/` (Python 3 stdlib, sem dependências) minera o dataset de magias e calibra a tabela:
+
+```
+python tools/minerar.py     # magias -> dataset estruturado (local, fora do repo)
+python tools/tarifas.py     # tarifa PM dos aprimoramentos -> data/tarifas-pm.json
+python tools/features.py    # stats numéricos por magia -> data/features.json
+python tools/calibrar.py    # reconstrói as oficiais com a tabela; teste de regressão
+python tools/exemplos.py    # galeria de preços de referência -> data/exemplos.json
+```
+
+O repo só versiona números e categorias — **nenhum texto das magias**. Tormenta 20
+pertence à Jambo Editora; este projeto é uma ferramenta de fã, sem conteúdo oficial.
+
+## Rodar
+
+```
+node server.mjs             # http://localhost:8070
+node server.mjs --check     # self-test
+```

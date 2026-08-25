@@ -33,6 +33,7 @@ export function textoDano(m) { const d = m.efeitos.dano; return d ? `${d.n}d${d.
 export function textoCura(m) { const c = m.efeitos.cura; return c ? `${c.n}d${c.faces}${c.fixo ? "+" + c.fixo : ""} PV` : "{cura?}"; }
 export function textoBonus(m) { return m.efeitos.bonus ? `+${m.efeitos.bonus} em ${m.efeitos.bonusEm || "…"}` : "{bônus?}"; }
 export function textoCond(m) { return m.efeitos.condicoes?.length ? m.efeitos.condicoes.join(" e ") : "{condição?}"; }
+export function textoPenalidade(m) { return m.efeitos.penalidade ? `−${m.efeitos.penalidade} em ${m.efeitos.penalidadeEm || "…"}` : "{penalidade?}"; }
 
 export function textoArea(a) {
   const forma = a.forma || "esfera";
@@ -60,6 +61,7 @@ export const PLACEHOLDERS = {
   dano: textoDano, cura: textoCura, bonus: textoBonus, condicao: textoCond,
   alvo: textoAlvo, alcance: (m) => ROTULOS.alcance[m.eixos.alcance].replace(/ \(.+\)/, ""),
   duracao: (m) => ROTULOS.duracao[m.eixos.duracao], teste: (m) => m.eixos.teste,
+  penalidade: textoPenalidade,
   efeitoespecial: (m) => m.efeitos.custom?.texto ? htmlParaTexto(m.efeitos.custom.texto) : "{efeito especial?}",
 };
 
@@ -78,6 +80,7 @@ export function cartaHtml(m, r) {
   if (m.efeitos.dano) ef.push(`<b>${textoDano(m)}</b>`);
   if (m.efeitos.cura) ef.push(`cura <b>${textoCura(m)}</b>`);
   if (m.efeitos.bonus) ef.push(`<b>${esc(textoBonus(m))}</b>`);
+  if (m.efeitos.penalidade) ef.push(`<b>${esc(textoPenalidade(m))}</b>`);
   if (m.efeitos.condicoes?.length) ef.push(`condição: <b>${textoCond(m)}</b>`);
   const custom = m.efeitos.custom?.texto ? substituir(sanitizarHtml(m.efeitos.custom.texto), m, true) : "";
   const desc = m.descricao ? substituir(sanitizarHtml(m.descricao), m, true) : "";

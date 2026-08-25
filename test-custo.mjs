@@ -72,4 +72,73 @@ const s = sugerirPm("dano+:1d6", tarifas, 1);
 assert.ok(s && s.pm >= 1 && s.n >= 5, JSON.stringify(s));
 assert.ok(sugerirPm("efeito-inventado", tarifas, 1).generico);
 
+// v5: Sono oficial agora fecha em 10 e é válido
+r = calcular({
+  circulo: 1,
+  eixos: { execucao: "padrao", alcance: "curto", duracao: "cena", resistencia: "anula", teste: "Vontade", alvo: { tipo: "alvos", qtd: 1 } },
+  efeitos: { condicoes: ["inconsciente"] },
+}, tabela);
+assert.equal(r.total, 10, `Sono: ${r.total}`);
+assert.ok(r.valido, "Sono devia ser válido");
+
+// v5: trava — paralisia em 2 alvos é bloqueada mesmo coubesse no orçamento
+r = calcular({
+  circulo: 1,
+  eixos: { execucao: "padrao", alcance: "curto", duracao: "cena", resistencia: "parcial", teste: "Vontade", alvo: { tipo: "alvos", qtd: 2 } },
+  efeitos: { condicoes: ["paralisado"] },
+}, tabela);
+assert.ok(r.bloqueada && !r.valido, "tier4 multi-alvo devia bloquear");
+
+// v5: tier 3 em área bloqueia
+r = calcular({
+  circulo: 1,
+  eixos: { execucao: "padrao", alcance: "pessoal", duracao: "cena", resistencia: "parcial", teste: "Vontade", alvo: { tipo: "area", tamanho: "p", forma: "cone" } },
+  efeitos: { condicoes: ["atordoado"] },
+}, tabela);
+assert.ok(!r.valido, "tier3 em área devia bloquear");
+
+// v5: alcance pessoal com alvo externo cobra como toque
+r = calcular({
+  circulo: 1,
+  eixos: { execucao: "padrao", alcance: "pessoal", duracao: "instantanea", resistencia: "reduz-metade", alvo: { tipo: "alvos", qtd: 1 } },
+  efeitos: { dano: { n: 2, faces: 8, fixo: 2 } },
+}, tabela);
+assert.equal(r.partes.alcance, tabela.eixos.alcance.toque, "pessoal+alvo devia virar toque");
+
+// v5: dano com duração repete -> x1.5
+r = calcular({
+  circulo: 1,
+  eixos: { execucao: "padrao", alcance: "curto", duracao: "sustentada", resistencia: "reduz-metade", alvo: { tipo: "alvos", qtd: 1 } },
+  efeitos: { dano: { n: 2, faces: 6 } },
+}, tabela);
+assert.equal(r.partes.dano, 9, `dano repetível: ${r.partes.dano}`);
+
+// v5: permanente numérico bloqueia
+r = calcular({
+  circulo: 1,
+  eixos: { execucao: "padrao", alcance: "pessoal", duracao: "permanente", alvo: { tipo: "pessoal" } },
+  efeitos: { bonus: 2 },
+}, tabela);
+assert.ok(!r.valido, "bônus permanente devia bloquear");
+
+// v5: escopo do bônus multiplica; penalidade é ofensiva
+r = calcular({
+  circulo: 1,
+  eixos: { execucao: "padrao", alcance: "pessoal", duracao: "cena", alvo: { tipo: "pessoal" } },
+  efeitos: { bonus: 2, bonusEscopo: "combate" },
+}, tabela);
+assert.equal(r.partes.bonus, 7.5, `bônus combate: ${r.partes.bonus}`);
+r = calcular({
+  circulo: 1,
+  eixos: { execucao: "padrao", alcance: "curto", duracao: "cena", resistencia: "anula", teste: "Vontade", alvo: { tipo: "alvos", qtd: 1 } },
+  efeitos: { penalidade: 2 },
+}, tabela);
+assert.equal(r.partes.penalidade, 5, `penalidade: ${r.partes.penalidade}`);
+assert.equal(r.partes.resistencia, tabela.eixos.resistencia.anula, "penalidade devia ser ofensiva");
+
+// v5: tarifa do texto detecta delta e devolve régua
+import { tarifaDoTexto } from "./static/custo.mjs";
+const td = tarifaDoTexto("Aumenta o dano em +1d8.", { efeitos: { dano: { faces: 8 } } }, tarifas);
+assert.ok(td && td.pm >= 1 && td.chave.includes("1d8"), JSON.stringify(td));
+
 console.log("custo.mjs OK");

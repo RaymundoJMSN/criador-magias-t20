@@ -1,8 +1,8 @@
 // Criador de Magias T20 — wizard passo a passo. Vanilla, sem build.
-import { calcular, circuloEfetivo } from "/custo.mjs";
+import { calcular, circuloEfetivo, ehOfensiva, tarifaDoTexto } from "/custo.mjs";
 import { ROTULOS, RESTRITO_SINGULAR, FORMAS, esc, sanitizarHtml, htmlParaTexto,
          textoDano, textoCura, textoBonus, textoCond, textoAlvo, textoResistencia,
-         PLACEHOLDERS, substituir, cartaHtml } from "/carta.mjs";
+         PLACEHOLDERS, substituir, cartaHtml, textoPenalidade } from "/carta.mjs";
 
 const $ = (s) => document.querySelector(s);
 const el = (tag, props = {}, ...filhos) => {
@@ -106,12 +106,11 @@ function richText({ html, placeholder, oninput, alto }) {
 }
 
 
-const ehOfensiva = (m) => !!m.efeitos.dano || !!m.efeitos.condicoes?.length;
-
 function chipsTermos(m, ta, aoInserir) {
   const chaves = ["alvo", "alcance", "duracao",
     ...(m.efeitos.dano ? ["dano"] : []), ...(m.efeitos.cura ? ["cura"] : []),
-    ...(m.efeitos.bonus ? ["bonus"] : []), ...(m.efeitos.condicoes?.length ? ["condicao"] : []),
+    ...(m.efeitos.bonus ? ["bonus"] : []), ...(m.efeitos.penalidade ? ["penalidade"] : []),
+    ...(m.efeitos.condicoes?.length ? ["condicao"] : []),
     ...(ehOfensiva(m) && m.eixos.resistencia !== "nenhuma" ? ["teste"] : []),
     ...(m.efeitos.custom ? ["efeitoespecial"] : [])];
   const box = el("div", { className: "chips" });
@@ -187,6 +186,7 @@ const BLOCOS = [
   ["cura", "✚ Cura", "recupera pontos de vida"],
   ["bonus", "🛡 Dá um bônus", "+X em Defesa, ataque, perícia…"],
   ["condicoes", "🕸 Atrapalha", "impõe condições: lento, cego, caído…"],
+  ["penalidade", "➖ Penalidade", "−X em Defesa, ataques, perícias do alvo"],
   ["custom", "✨ Efeito especial", "qualquer outra coisa — voar, ilusão, comando…"],
 ];
 function passoEfeitos(box) {
@@ -198,7 +198,7 @@ function passoEfeitos(box) {
       marcado: ligado, titulo, explica,
       onclick: () => {
         if (ligado) delete magia.efeitos[chave];
-        else magia.efeitos[chave] = { dano: { n: 2, faces: 6, fixo: 0, tipo: "fogo" }, cura: { n: 2, faces: 8, fixo: 2 }, bonus: 2, condicoes: [], custom: { texto: "", pontos: 0 } }[chave];
+        else magia.efeitos[chave] = { dano: { n: 2, faces: 6, fixo: 0, tipo: "fogo" }, cura: { n: 2, faces: 8, fixo: 2 }, bonus: 2, penalidade: 2, condicoes: [], custom: { texto: "", pontos: 0 } }[chave];
         if (chave === "bonus" && !ligado) magia.efeitos.bonusEm = magia.efeitos.bonusEm || "";
         renderPasso(); atualizar();
       },
@@ -240,18 +240,24 @@ function passoConfig(box) {
       el("p", { className: "explica", textContent: "referência oficial: Curar Ferimentos = 2d8+2 no toque" }),
     ));
   }
-  if (ef.bonus != null) {
+  const painelNumerico = (chave, titulo, sinal) => {
     const esc2 = TABELA.efeitos.bonus_escalonado;
+    const escopos = [["especifico", "1 perícia / 1 uso específico (×1)"], ["combate", "Defesa OU ataques OU resistências (×1.5)"], ["amplo", "uma categoria inteira de testes (×2)"]];
     box.append(el("div", { className: "sub-painel" },
-      el("h3", {}, "🛡 Bônus"),
+      el("h3", {}, titulo),
       el("div", { className: "campo-linha" },
-        seletor("valor", ef.bonus, [1, 2, 3, 4, 5], (v) => (ef.bonus = +v)),
-        el("label", { className: "campo" }, "em quê?",
-          el("input", { maxLength: 60, value: magia.efeitos.bonusEm || "", placeholder: "Defesa, ataques, Atletismo…", oninput: (e) => { magia.efeitos.bonusEm = e.target.value; atualizar(false); } })),
+        seletor("valor", ef[chave], [1, 2, 3, 4, 5], (v) => (ef[chave] = +v)),
+        el("label", { className: "campo" }, "abrangência",
+          el("select", { onchange: (e) => { ef[chave + "Escopo"] = e.target.value; atualizar(); } },
+            ...escopos.map(([v, r]) => el("option", { value: v, textContent: r, selected: (ef[chave + "Escopo"] || "especifico") === v })))),
+        el("label", { className: "campo" }, "em quê, exatamente?",
+          el("input", { maxLength: 60, value: ef[chave + "Em"] || "", placeholder: sinal === "+" ? "Defesa, Atletismo…" : "Defesa, ataques do alvo…", oninput: (e) => { ef[chave + "Em"] = e.target.value; atualizar(false); } })),
       ),
-      el("p", { className: "explica", textContent: `custo escalonado (anti-munchkin): ${esc2.map((c, i) => `+${i + 1}=${c}pt`).join("  ")}` }),
+      el("p", { className: "explica", textContent: `custo por valor: ${esc2.map((c, i) => `${sinal}${i + 1}=${c}pt`).join("  ")} × abrangência` }),
     ));
-  }
+  };
+  if (ef.bonus != null) painelNumerico("bonus", "🛡 Bônus", "+");
+  if (ef.penalidade != null) painelNumerico("penalidade", "➖ Penalidade (o alvo resiste)", "−");
   if (ef.condicoes) {
     const chips = el("div", { className: "chips" });
     for (const [tier, lista] of Object.entries(TABELA.efeitos.condicoes_tier)) {
@@ -284,6 +290,9 @@ function passoConfig(box) {
       el("h3", {}, "✨ Efeito especial"),
       chipsTermos(magia, rt.editor, "efeitoespecial"),
       rt,
+      el("label", { className: "chk", style: "margin:6px 0" },
+        el("input", { type: "checkbox", checked: !!ef.resistenciaForcada, onchange: (e) => { ef.resistenciaForcada = e.target.checked; renderPasso(); atualizar(); } }),
+        " o alvo pode resistir a este efeito (magia ofensiva)"),
       el("div", { className: "campo-linha" },
         el("label", { className: "campo mini-campo" }, "custo combinado com o mestre (pontos)",
           el("input", { id: "custom-pontos", type: "number", min: 0, max: 20, step: 0.5, value: ef.custom.pontos, oninput: (e) => { ef.custom.pontos = +e.target.value; atualizar(false); } })),
@@ -348,7 +357,9 @@ function passoAlvo(box) {
     const linha = el("div", { className: "campo-linha" },
       seletor("forma", a.forma || "esfera", formas, (v) => { a.forma = v; if (cat !== "g") a.metros = FORMAS[cat][v]; renderPasso(); }),
       cat === "g"
-        ? seletor("metros", a.metros || 9, METROS_G, (v) => (a.metros = +v))
+        ? seletor("metros", a.metros || 9,
+            METROS_G.filter((mm) => mm <= (TABELA.areas.g_max_m?.[a.forma || "esfera"] ?? 18)),
+            (v) => (a.metros = +v))
         : el("span", { className: "explica", textContent: `${FORMAS[cat][a.forma || "esfera"]}m (o tamanho ${cat === "p" ? "pequeno" : "médio"} oficial pra essa forma)` }),
     );
     box.append(el("h3", { className: "sub-perg", textContent: "Qual forma?" }), linha);
@@ -481,9 +492,14 @@ function passoAprimoramentos(box) {
         el("textarea", { rows: 2, maxLength: 500, value: ap.texto, placeholder: "o que o aprimoramento faz…", oninput: (e) => { ap.texto = e.target.value; atualizar(false); } }),
         el("div", { className: "apr-lado" },
           selRequer,
-          el("span", { className: "sug" },
-            (ap.fonte ? `de ${ap.fonte}` : "") +
-            (!ap.requerCirculo && trilho > 1 ? `${ap.fonte ? " · " : ""}PM sugere ${trilho}º` : ""))),
+          (() => {
+            const tf = !ap.truque && tarifaDoTexto(ap.texto, magia, TARIFAS);
+            const fora = tf && Math.abs((ap.pm || 0) - tf.pm) > 1;
+            return el("span", { className: "sug" + (fora ? " fora" : "") },
+              (ap.fonte ? `de ${ap.fonte}` : "") +
+              (fora ? `${ap.fonte ? " · " : ""}oficiais cobram ~${tf.pm} PM (${tf.n}×)` : "") +
+              (!ap.requerCirculo && trilho > 1 ? " · PM sugere " + trilho + "º" : ""));
+          })()),
         el("button", { className: "bt mini", textContent: "×", onclick: () => { magia.aprimoramentos.splice(i, 1); renderPasso(); atualizar(); } }),
       ));
       lista.lastElementChild.__ap = ap;
@@ -701,6 +717,7 @@ function textoPlano(m, r) {
     if (m.efeitos.dano) e2.push(textoDano(m));
     if (m.efeitos.cura) e2.push("cura " + textoCura(m));
     if (m.efeitos.bonus) e2.push(textoBonus(m));
+    if (m.efeitos.penalidade) e2.push(textoPenalidade(m));
     if (m.efeitos.condicoes?.length) e2.push("condição: " + textoCond(m));
     if (m.efeitos.custom?.texto) e2.push(htmlParaTexto(m.efeitos.custom.texto));
     if (e2.length) linhas.push(e2.join("; ") + ".");
@@ -804,6 +821,8 @@ async function publicar() {
   const r = calcular(magia, TABELA);
   if (!r.valido) return aviso("estourou o orçamento — ajuste antes de publicar", true);
   if (!magia.nome) return aviso("dê um nome à magia", true);
+  if (magia.efeitos.custom?.texto && !(Number(magia.efeitos.custom.pontos) > 0) &&
+      !confirm("O efeito especial está com custo 0 pontos (ainda não combinado com o mestre). Publicar assim mesmo?")) return;
   const i = minhas.findIndex((x) => x.id === magia.id);
   if (i >= 0) minhas[i] = magia; else minhas.push(magia);
   await fetch(`/api/user/${encodeURIComponent(user)}`, { method: "PUT", body: JSON.stringify({ magias: minhas }) });

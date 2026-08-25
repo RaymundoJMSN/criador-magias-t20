@@ -65,6 +65,8 @@ def reconstruir(m, t=TABELA):
     if "dano" in m:
         partes["dano"] = custo_dados(m["dano"]["dados"], ef["dano_por_dado"],
                                      ef["dano_fixo_por_ponto"])
+        if m["duracao"]["cat"] in ("sustentada", "cena", "1dia", "permanente"):
+            partes["dano"] *= ef.get("dano_repetivel_mult", 1.5)
     if "cura" in m:
         c = custo_dados(m["cura"]["dados"], ef["cura_por_dado"], ef["cura_fixa_por_ponto"])
         if "dano" in partes:  # dano OU cura (Infligir Ferimentos): modos alternativos
@@ -76,14 +78,15 @@ def reconstruir(m, t=TABELA):
         v = min(abs(m["modificador"]["valor"]), len(esc)) - 1
         partes["bonus"] = esc[v]
 
-    tiers = {c: int(tier) for tier, cs in ef["condicoes_tier"].items() for c in cs}
+    tiers_map = {c: int(tier) for tier, cs in ef["condicoes_tier"].items() for c in cs}
     conds = m.get("condicoes", [])
     if conds:
-        tier = max(tiers.get(c, 1) for c in conds)
-        custo = ef["condicao_custo_por_tier"][str(tier)]
-        if m["resistencia"]["modo"] in ("parcial", "reduz-metade"):
-            custo = custo * ef["condicao_so_na_falha_mult"]
-        partes["condicao"] = custo + (len(conds) - 1)  # condicoes extras: +1 cada
+        ts = sorted((tiers_map.get(c, 1) for c in conds), reverse=True)
+        custo_tier = lambda tr: ef["condicao_custo_por_tier"][str(tr)]
+        custo = custo_tier(ts[0]) + sum(custo_tier(tr) / 2 for tr in ts[1:])
+        if "dano" in m:  # rider de dano ("atordoado na falha"): metade
+            custo *= ef.get("condicao_rider_dano_mult", 0.5)
+        partes["condicao"] = custo
 
     # sem efeito numerico detectado = utilitario
     if not any(k in partes for k in ("dano", "cura", "bonus", "condicao")):

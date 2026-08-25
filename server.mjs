@@ -133,6 +133,16 @@ async function tratar(req, res) {
     return m ? json(res, 200, m) : json(res, 404, { erro: "não existe" });
   }
 
+  // textos oficiais (dados/textos.json fica FORA do repo; sem ele a rota devolve 404)
+  if (p.startsWith("/api/texto/") && req.method === "GET") {
+    if (!tratar.textos) {
+      try { tratar.textos = JSON.parse(readFileSync(join(DADOS, "textos.json"), "utf-8")); }
+      catch { tratar.textos = {}; }
+    }
+    const t = tratar.textos[p.slice("/api/texto/".length).replace(/[^\w-]/g, "")];
+    return t ? json(res, 200, t) : json(res, 404, { erro: "sem texto no servidor" });
+  }
+
   if (p.startsWith("/m/")) return estatico(res, join(RAIZ, "static", "index.html"));
   if (p === "/") return estatico(res, join(RAIZ, "static", "index.html"));
   if (p.startsWith("/data/")) return estatico(res, join(RAIZ, "data", p.slice(6).replace(/[^\w.-]/g, "")));

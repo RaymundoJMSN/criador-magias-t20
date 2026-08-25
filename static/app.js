@@ -588,14 +588,39 @@ function abrirAba(aba) {
         el("div", { className: "meta", textContent: `${m.escola} · por ${m.autor}` }));
     }
   } else {
-    g.append(el("div", { className: "vazio", textContent: "Magias oficiais reconstruídas — clique numa pra usar o preço do efeito como referência do seu efeito especial. (Só números; o texto oficial fica no livro.)" }));
-    for (const ex of EXEMPLOS.utilitarias) {
-      add({ onclick: () => usarReferencia(ex) },
-        el("h3", { textContent: ex.nome }),
-        el("span", { className: "custo", textContent: `efeito ≈ ${ex.preco_efeito}pt` }),
-        el("div", { className: "meta", textContent: `${ex.escola} · ${ex.grupo}` }));
-    }
+    g.append(el("div", { className: "vazio", textContent: "As 101 magias oficiais de 1º círculo reconstruídas. Clique pra ler o texto oficial e comparar; nas de efeito especial dá pra usar o preço como referência." }));
+    const todas = [
+      ...EXEMPLOS.utilitarias.map((ex) => ({ ...ex, badge: `efeito ≈ ${ex.preco_efeito}pt` })),
+      ...EXEMPLOS.numericas.map((ex) => ({ ...ex, badge: `total ${ex.total}pt` })),
+    ].sort((a, b) => a.nome.localeCompare(b.nome));
+    for (const ex of todas) add({ onclick: (ev) => expandirReferencia(ev.currentTarget, ex) },
+      el("h3", { textContent: ex.nome }),
+      el("span", { className: "custo", textContent: ex.badge }),
+      el("div", { className: "meta", textContent: `${ex.escola} · ${ex.grupo}` }));
   }
+}
+
+async function expandirReferencia(card, ex) {
+  const aberto = card.querySelector(".texto-oficial");
+  if (aberto) return aberto.remove();
+  document.querySelectorAll(".texto-oficial").forEach((n) => n.remove());
+  const box = el("div", { className: "texto-oficial", onclick: (e) => e.stopPropagation() }, "carregando…");
+  card.append(box);
+  try {
+    const t = await (await fetch(`/api/texto/${ex.slug}`)).json();
+    if (t.erro) { box.textContent = "texto não disponível neste servidor"; return; }
+    box.replaceChildren(
+      el("div", { className: "to-stats", innerHTML: Object.entries(t.stats).map(([k, v]) => `<b>${k}:</b> ${esc(v)}`).join("; ") }),
+      el("p", { className: "to-desc", textContent: t.descricao }),
+      ...t.aprimoramentos.map((a) => el("div", { className: "to-apr", innerHTML: `<b>${esc(a.custo)}:</b> ${esc(a.texto)}` })),
+      el("div", { className: "to-rodape" },
+        el("span", { textContent: t.publicacao }),
+        ex.preco_efeito != null ? el("button", {
+          className: "bt mini", textContent: `usar como referência (${ex.preco_efeito}pt)`,
+          onclick: (e) => { e.stopPropagation(); usarReferencia(ex); },
+        }) : null),
+    );
+  } catch { box.textContent = "erro ao carregar"; }
 }
 
 function usarReferencia(ex) {

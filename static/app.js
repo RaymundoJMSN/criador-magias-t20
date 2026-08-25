@@ -1,5 +1,8 @@
 // Criador de Magias T20 — wizard passo a passo. Vanilla, sem build.
 import { calcular, circuloEfetivo } from "/custo.mjs";
+import { ROTULOS, RESTRITO_SINGULAR, FORMAS, esc, sanitizarHtml, htmlParaTexto,
+         textoDano, textoCura, textoBonus, textoCond, textoAlvo, textoResistencia,
+         PLACEHOLDERS, substituir, cartaHtml } from "/carta.mjs";
 
 const $ = (s) => document.querySelector(s);
 const el = (tag, props = {}, ...filhos) => {
@@ -7,7 +10,6 @@ const el = (tag, props = {}, ...filhos) => {
   n.append(...filhos.filter((f) => f != null));
   return n;
 };
-const esc = (s) => (s || "").replace(/[<>&]/g, (c) => ({ "<": "&lt;", ">": "&gt;", "&": "&amp;" }[c]));
 
 let TABELA, TARIFAS, EXEMPLOS;
 let magia = novaMagia();
@@ -16,12 +18,6 @@ let minhas = [];
 let passoAtual = 0;
 let msgTimer;
 
-const ROTULOS = {
-  execucao: { padrao: "padrão", movimento: "movimento", livre: "livre", reacao: "reação", completa: "completa", longa: "ritual" },
-  alcance: { pessoal: "pessoal", toque: "toque", curto: "curto (9m)", medio: "médio (30m)", longo: "longo (90m)", ilimitado: "ilimitado" },
-  duracao: { instantanea: "instantânea", "1rodada": "1 rodada", sustentada: "sustentada", cena: "cena", "1dia": "1 dia", permanente: "permanente" },
-  resistencia: { nenhuma: "nenhuma", desacredita: "desacredita", "reduz-metade": "reduz à metade", parcial: "parcial", anula: "anula" },
-};
 const EXPLICA = {
   execucao: {
     padrao: "uma ação padrão do seu turno — o normal",
@@ -63,13 +59,13 @@ const RESTRITOS = [
   ["animais", "só animais", "bichos naturais"],
   ["objetos", "só objetos", "itens, portas, armas…"],
 ];
-const RESTRITO_SINGULAR = { humanoides: "humanoide", animais: "animal", objetos: "objeto" };
-const FORMAS = { p: { cone: 6, linha: 9, esfera: 3, cilindro: 3, nuvem: 3, quadrado: 3 },
-                 m: { cone: 9, linha: 30, esfera: 6, cilindro: 9, nuvem: 6, quadrado: 9 } };
 const METROS_G = [9, 12, 15, 18, 30];
+
+function idNovo() { return [...crypto.getRandomValues(new Uint8Array(4))].map((b) => b.toString(16).padStart(2, "0")).join(""); }
 
 function novaMagia() {
   return {
+    id: idNovo(),
     nome: "", tipo: "Arcana", escola: "Evocação", circulo: 1, descricao: "",
     eixos: { execucao: "padrao", alcance: "curto", duracao: "instantanea", resistencia: "nenhuma", teste: "Reflexos", alvo: { tipo: "alvos", qtd: 1, restrito: null } },
     efeitos: {},
@@ -78,27 +74,7 @@ function novaMagia() {
   };
 }
 
-// ============================================================ html seguro
-function sanitizarHtml(html) {
-  const t = document.createElement("template");
-  t.innerHTML = html || "";
-  const ok = new Set(["B", "STRONG", "I", "EM", "U", "BR", "DIV", "P"]);
-  const limpa = (n) => {
-    for (const c of [...n.children]) {
-      if (!ok.has(c.tagName)) { c.replaceWith(...c.childNodes); limpa(n); return limpa(n); }
-      for (const a of [...c.attributes]) c.removeAttribute(a.name);
-      limpa(c);
-    }
-  };
-  limpa(t.content);
-  return t.innerHTML;
-}
-
-function htmlParaTexto(html) {
-  const t = document.createElement("template");
-  t.innerHTML = (html || "").replace(/<br\s*\/?>/gi, "\n").replace(/<\/(div|p)>/gi, "\n");
-  return t.content.textContent.replace(/\n{3,}/g, "\n\n").trim();
-}
+// ============================================================ html seguro: ver carta.mjs
 
 // editor rich text mínimo: negrito, itálico, enter = quebra de verdade
 function richText({ html, placeholder, oninput, alto }) {
@@ -120,44 +96,6 @@ function richText({ html, placeholder, oninput, alto }) {
   return wrap;
 }
 
-// ============================================================ textos da magia
-function textoDano(m) { const d = m.efeitos.dano; return d ? `${d.n}d${d.faces}${d.fixo ? "+" + d.fixo : ""} de ${d.tipo}` : "{dano?}"; }
-function textoCura(m) { const c = m.efeitos.cura; return c ? `${c.n}d${c.faces}${c.fixo ? "+" + c.fixo : ""} PV` : "{cura?}"; }
-function textoBonus(m) { return m.efeitos.bonus ? `+${m.efeitos.bonus} em ${m.efeitos.bonusEm || "…"}` : "{bônus?}"; }
-function textoCond(m) { return m.efeitos.condicoes?.length ? m.efeitos.condicoes.join(" e ") : "{condição?}"; }
-function textoArea(a) {
-  const forma = a.forma || "esfera";
-  const metros = a.metros || FORMAS[a.tamanho || "p"]?.[forma] || 6;
-  return forma === "esfera" || forma === "nuvem" || forma === "cilindro"
-    ? `${forma} com ${metros}m de raio` : `${forma} de ${metros}m`;
-}
-function textoAlvo(m) {
-  const a = m.eixos.alvo;
-  if (a.tipo === "pessoal") return "você";
-  if (a.tipo === "area") return textoArea(a);
-  const tipo = a.restrito ? (RESTRITO_SINGULAR[a.restrito] || a.restrito) : "criatura";
-  const plural = a.restrito ? (a.restrito in RESTRITO_SINGULAR ? a.restrito : a.restrito + "s") : "criaturas";
-  if (a.qtd === "escolhidas") return `${plural} escolhidas`;
-  return `${a.qtd} ${a.qtd > 1 ? plural : tipo}`;
-}
-function textoResistencia(m) {
-  const r = m.eixos.resistencia;
-  return r === "nenhuma" ? "nenhuma" : `${m.eixos.teste} ${ROTULOS.resistencia[r]}`;
-}
-const PLACEHOLDERS = {
-  dano: textoDano, cura: textoCura, bonus: textoBonus, condicao: textoCond,
-  alvo: textoAlvo, alcance: (m) => ROTULOS.alcance[m.eixos.alcance].replace(/ \(.+\)/, ""),
-  duracao: (m) => ROTULOS.duracao[m.eixos.duracao], teste: (m) => m.eixos.teste,
-  efeitoespecial: (m) => m.efeitos.custom?.texto ? htmlParaTexto(m.efeitos.custom.texto) : "{efeito especial?}",
-};
-function substituir(textoHtml, m, negrito) {
-  return textoHtml.replace(/\{(\w+)\}/g, (tudo, chave) => {
-    const fn = PLACEHOLDERS[chave];
-    if (!fn) return tudo;
-    const v = esc(fn(m));
-    return negrito ? `<b>${v}</b>` : v;
-  });
-}
 
 const ehOfensiva = (m) => !!m.efeitos.dano || !!m.efeitos.condicoes?.length;
 
@@ -452,6 +390,23 @@ function passoDescricao(box) {
 // ---------------------------------------------------------------- passo 8: aprimoramentos REAIS
 let cacheSug = { chave: "", lista: null };
 
+// "…efeito X. Requer 2º círculo." -> tira a frase do texto e devolve o número
+function extrairRequer(texto) {
+  const m = texto.match(/requer (\d)\s*[ºo°]?\s*c[ií]rculo/i);
+  if (!m) return { circ: null, texto };
+  return {
+    circ: +m[1],
+    texto: texto.replace(/\.?\s*requer \d\s*[ºo°]?\s*c[ií]rculo\.?/i, ".").replace(/\.\.+/g, ".").trim(),
+  };
+}
+
+function requerInicial(texto, pm, truque) {
+  const ex = extrairRequer(texto);
+  if (ex.circ) return { texto: ex.texto, requerCirculo: ex.circ };
+  const trilho = truque ? 1 : circuloEfetivo(1 + (pm || 0));
+  return { texto, requerCirculo: trilho > 1 ? trilho : null };
+}
+
 function featuresDaMagia(m) {
   return {
     circulo: m.circulo, escola: m.escola,
@@ -478,7 +433,8 @@ function passoAprimoramentos(box) {
         type: "button", className: "sugestao",
         title: s.texto,
         onclick: () => {
-          magia.aprimoramentos.push({ texto: s.texto, pm: s.pm ?? 0, truque: !!s.truque, fonte: s.fonte });
+          const ini = requerInicial(s.texto, s.pm, s.truque);
+          magia.aprimoramentos.push({ texto: ini.texto, pm: s.pm ?? 0, truque: !!s.truque, fonte: s.fonte, requerCirculo: ini.requerCirculo });
           renderPasso(); atualizar();
         },
       },
@@ -503,15 +459,21 @@ function passoAprimoramentos(box) {
   if (magia.aprimoramentos.length) {
     const lista = el("div", { className: "lista-apr" });
     magia.aprimoramentos.forEach((ap, i) => {
-      const pmTotal = 1 + (ap.truque ? 0 : ap.pm);
-      const circ = circuloEfetivo(pmTotal);
+      const trilho = ap.truque ? 1 : circuloEfetivo(1 + (ap.pm || 0));
+      const selRequer = el("select", { className: "requer", title: "círculo mínimo pra usar este aprimoramento",
+        onchange: (e) => { ap.requerCirculo = e.target.value ? +e.target.value : null; atualizar(false); } },
+        el("option", { value: "", textContent: "requer: —", selected: !ap.requerCirculo }),
+        ...[2, 3, 4, 5].map((c) => el("option", { value: String(c), textContent: `requer ${c}º`, selected: ap.requerCirculo === c })));
       lista.append(el("div", { className: "apr-item" },
         ap.truque ? el("b", { className: "pm-fixo" }, "Truque") :
           el("input", { className: "pm", type: "number", min: 0, max: 15, value: ap.pm, onchange: (e) => { ap.pm = +e.target.value; renderPasso(); atualizar(); } }),
         ap.truque ? null : el("span", {}, "PM"),
         el("textarea", { rows: 2, maxLength: 500, value: ap.texto, placeholder: "o que o aprimoramento faz…", oninput: (e) => { ap.texto = e.target.value; atualizar(false); } }),
-        el("span", { className: "sug" },
-          (ap.fonte ? `de ${ap.fonte} · ` : "") + (circ > 1 && !ap.truque ? `requer ${circ}º círculo` : "")),
+        el("div", { className: "apr-lado" },
+          selRequer,
+          el("span", { className: "sug" },
+            (ap.fonte ? `de ${ap.fonte}` : "") +
+            (!ap.requerCirculo && trilho > 1 ? `${ap.fonte ? " · " : ""}PM sugere ${trilho}º` : ""))),
         el("button", { className: "bt mini", textContent: "×", onclick: () => { magia.aprimoramentos.splice(i, 1); renderPasso(); atualizar(); } }),
       ));
     });
@@ -527,37 +489,35 @@ function passoRevisao(box) {
     el("div", { className: "acoes" },
       el("button", { className: "bt destaque", textContent: "salvar", onclick: salvarServidor }),
       el("button", { className: "bt", textContent: "copiar texto", onclick: () => { navigator.clipboard.writeText(textoPlano(magia, r)); aviso("texto copiado"); } }),
-      el("button", { className: "bt", textContent: "publicar (gera link)", onclick: publicar }),
+      ...(estaPublicada()
+        ? [el("button", { className: "bt", textContent: "🔗 compartilhar", onclick: () => { navigator.clipboard.writeText(linkDaMagia()); aviso("link copiado: " + linkDaMagia()); } }),
+           el("button", { className: "bt", textContent: "despublicar", onclick: despublicar })]
+        : [el("button", { className: "bt", textContent: "publicar", onclick: publicar })]),
       el("button", { className: "bt", textContent: "nova magia", onclick: () => { magia = novaMagia(); passoAtual = 0; renderPasso(); atualizar(); } }),
     ),
   );
   if (!r.valido) box.append(el("p", { className: "explica erro-txt", textContent: "A magia estourou o orçamento — volte e ajuste (ou combine o extra com o mestre)." }));
+  box.append(
+    el("div", { className: "acoes" },
+      el("button", { className: "bt", textContent: "⚡ sugestões da IA", onclick: revisarComIA }),
+      el("span", { className: "explica", textContent: "compara e você escolhe o que aplicar — nada muda sozinho" })),
+    el("div", { id: "ia-rev" }),
+  );
 }
 
-// ============================================================ IA: preço do efeito especial
-async function sugerirPrecoIA() {
-  const out = $("#ia-res");
-  let key = localStorage.getItem("cm_apikey") || "";
-  if (!key) {
-    out.replaceChildren(
-      el("span", {}, "cole sua chave da API da Anthropic (fica só no seu navegador): "),
-      el("input", { type: "password", id: "ia-key", placeholder: "sk-ant-…", style: "width:220px" }),
-      el("button", { className: "bt mini", textContent: "guardar", onclick: () => { const v = $("#ia-key").value.trim(); if (v) { localStorage.setItem("cm_apikey", v); sugerirPrecoIA(); } } }),
-    );
-    return;
-  }
-  const efeito = htmlParaTexto(magia.efeitos.custom?.texto || "");
-  if (!efeito) { out.textContent = "escreva o efeito primeiro."; return; }
-  out.textContent = "consultando a IA…";
+// ============================================================ IA (chave do próprio usuário, só no navegador)
+function pedirChave(out, dePois) {
+  out.replaceChildren(
+    el("span", {}, "cole sua chave da API da Anthropic (fica só no seu navegador): "),
+    el("input", { type: "password", className: "ia-key", placeholder: "sk-ant-…", style: "width:220px" }),
+    el("button", { className: "bt mini", textContent: "guardar", onclick: () => { const v = out.querySelector(".ia-key").value.trim(); if (v) { localStorage.setItem("cm_apikey", v); dePois(); } } }),
+  );
+}
 
-  const referencias = EXEMPLOS.utilitarias.map((e2) => `${e2.nome}: ${e2.preco_efeito} pts`).join("; ");
-  const system = `Você precifica EFEITOS de magias customizadas de Tormenta 20 num sistema de compra de pontos (1º círculo = 10 pontos no total da magia; o efeito é só uma parte — alcance/duração/área são pagos à parte).
-Régua calibrada nas magias oficiais: dano 2d6 ≈ 6 pts; condição fraca 2, média 5, forte 8, incapacitante 12 (metade se há teste de resistência); bônus +1=2/+2=5/+3=9; efeito utilitário mediano de 1º círculo ≈ ${TABELA.efeitos.utilitario_base} pts.
-Preços de referência dos EFEITOS das oficiais de 1º círculo (efeito puro, sem eixos): ${referencias}.
-Responda APENAS um JSON: {"pontos": <número 0-20, pode .5>, "justificativa": "<1 frase comparando com 1-2 oficiais>"}`;
-  const userMsg = `Efeito a precificar: "${efeito}"
-Contexto da magia: alcance ${magia.eixos.alcance}, duração ${magia.eixos.duracao}, alvo ${textoAlvo(magia)}${ehOfensiva(magia) ? ", resistência " + textoResistencia(magia) : ""}. (Não cobre pelos eixos — só pelo efeito em si.)`;
-
+// devolve o objeto JSON da resposta, ou {erro} — nunca lança
+async function chamarIA(system, userMsg, maxTokens = 2000) {
+  const key = localStorage.getItem("cm_apikey") || "";
+  if (!key) return { semChave: true };
   try {
     const resp = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
@@ -567,55 +527,127 @@ Contexto da magia: alcance ${magia.eixos.alcance}, duração ${magia.eixos.durac
         "anthropic-version": "2023-06-01",
         "anthropic-dangerous-direct-browser-access": "true",
       },
-      body: JSON.stringify({ model: "claude-opus-5", max_tokens: 1000, system, messages: [{ role: "user", content: userMsg }] }),
+      body: JSON.stringify({ model: "claude-opus-5", max_tokens: maxTokens, system, messages: [{ role: "user", content: userMsg }] }),
     });
     const j = await resp.json();
-    if (!resp.ok) {
-      out.replaceChildren(el("span", { className: "erro-txt", textContent: j.error?.message?.slice(0, 120) || `erro ${resp.status}` }),
-        el("button", { className: "bt mini", textContent: "trocar chave", onclick: () => { localStorage.removeItem("cm_apikey"); sugerirPrecoIA(); } }));
-      return;
-    }
-    if (j.stop_reason === "refusal") { out.textContent = "a IA recusou analisar esse texto."; return; }
+    if (!resp.ok) return { erro: j.error?.message?.slice(0, 140) || `erro ${resp.status}`, chaveRuim: resp.status === 401 };
+    if (j.stop_reason === "refusal") return { erro: "a IA recusou analisar esse texto." };
     const texto = (j.content || []).find((b) => b.type === "text")?.text || "";
     const m = texto.match(/\{[\s\S]*\}/);
-    const r = JSON.parse(m[0]);
-    magia.efeitos.custom.pontos = Number(r.pontos) || 0;
-    $("#custom-pontos").value = magia.efeitos.custom.pontos;
-    out.textContent = `sugestão: ${r.pontos} pts — ${r.justificativa}`;
-    atualizar(false);
+    if (!m) return { erro: "resposta sem JSON." };
+    return { dados: JSON.parse(m[0]) };
   } catch {
-    out.textContent = "não consegui falar com a API (chave? rede?).";
+    return { erro: "não consegui falar com a API (chave? rede?)." };
   }
 }
 
-// ============================================================ carta
-function cartaHtml(m, r) {
-  const ef = [];
-  if (m.efeitos.dano) ef.push(`<b>${textoDano(m)}</b>`);
-  if (m.efeitos.cura) ef.push(`cura <b>${textoCura(m)}</b>`);
-  if (m.efeitos.bonus) ef.push(`<b>${esc(textoBonus(m))}</b>`);
-  if (m.efeitos.condicoes?.length) ef.push(`condição: <b>${textoCond(m)}</b>`);
-  const custom = m.efeitos.custom?.texto ? substituir(sanitizarHtml(m.efeitos.custom.texto), m, true) : "";
-  const desc = m.descricao ? substituir(sanitizarHtml(m.descricao), m, true) : "";
-  const aprs = m.aprimoramentos.filter((a) => a.texto).map((a) =>
-    `<div><b>${a.truque ? "Truque" : "+" + a.pm + " PM"}:</b> ${esc(a.texto)}${!a.truque && circuloEfetivo(1 + a.pm) > 1 ? ` <i>(requer ${circuloEfetivo(1 + a.pm)}º círculo)</i>` : ""}</div>`).join("");
-  return `
-    <h2>${esc(m.nome) || "Sem Nome"}</h2>
-    <div class="tipo-linha">${m.escola} (${m.tipo}) — 1º círculo</div>
-    <div class="miolo">
-    <div class="stats">
-      <b>Execução:</b> ${ROTULOS.execucao[m.eixos.execucao]}; <b>Alcance:</b> ${ROTULOS.alcance[m.eixos.alcance].replace(/ \(.+\)/, "")};
-      <b>Alvo:</b> ${textoAlvo(m)}; <b>Duração:</b> ${ROTULOS.duracao[m.eixos.duracao]};
-      <b>Resistência:</b> ${textoResistencia(m)}
-    </div>
-    ${desc ? `<div class="desc">${desc}</div>` : ""}
-    ${!desc && custom ? `<div class="desc">${custom}</div>` : ""}
-    ${ef.length && !desc ? `<div class="efeitos-num">${ef.join("; ")}.</div>` : ""}
-    ${aprs ? `<div class="apr">${aprs}</div>` : ""}
-    <div class="assina">${r.total}/${r.orcamento} pontos${r.valido ? "" : " — ESTOUROU"}${m.autor ? " · por " + esc(m.autor) : ""}</div>
-    </div>`;
+const REGUA_IA = () => `Régua calibrada nas magias oficiais de Tormenta 20 (1º círculo = 10 pontos no total; alcance/duração/área/resistência são pagos à parte dos efeitos): dano 2d6 ≈ 6 pts; condição fraca 2, média 5, forte 8, incapacitante 12 (metade se há teste); bônus +1=2/+2=5/+3=9; efeito utilitário mediano ≈ ${TABELA.efeitos.utilitario_base} pts. Aprimoramentos custam PM (não pontos): +1 PM ≈ +1 dado de dano/+1 alvo; trilho de círculo: magia de 1º com aprimoramento que soma 3+ PM equivale a 2º círculo (6=3º, 10=4º, 15=5º) e deve levar "requer Xº círculo".`;
+
+async function sugerirPrecoIA() {
+  const out = $("#ia-res");
+  const efeito = htmlParaTexto(magia.efeitos.custom?.texto || "");
+  if (!efeito) { out.textContent = "escreva o efeito primeiro."; return; }
+  if (!localStorage.getItem("cm_apikey")) return pedirChave(out, sugerirPrecoIA);
+  out.textContent = "consultando a IA…";
+
+  const referencias = EXEMPLOS.utilitarias.map((e2) => `${e2.nome}: ${e2.preco_efeito} pts`).join("; ");
+  const r = await chamarIA(
+    `Você precifica EFEITOS de magias customizadas de Tormenta 20. ${REGUA_IA()}
+Preços de referência dos EFEITOS das oficiais de 1º círculo (efeito puro, sem eixos): ${referencias}.
+Responda APENAS um JSON: {"pontos": <número 0-20, pode .5>, "justificativa": "<1 frase comparando com 1-2 oficiais>"}`,
+    `Efeito a precificar: "${efeito}"
+Contexto da magia: alcance ${magia.eixos.alcance}, duração ${magia.eixos.duracao}, alvo ${textoAlvo(magia)}${ehOfensiva(magia) ? ", resistência " + textoResistencia(magia) : ""}. (Não cobre pelos eixos — só pelo efeito em si.)`,
+    1000);
+  if (r.semChave) return pedirChave(out, sugerirPrecoIA);
+  if (r.erro) {
+    out.replaceChildren(el("span", { className: "erro-txt", textContent: r.erro }),
+      r.chaveRuim ? el("button", { className: "bt mini", textContent: "trocar chave", onclick: () => { localStorage.removeItem("cm_apikey"); sugerirPrecoIA(); } }) : null);
+    return;
+  }
+  magia.efeitos.custom.pontos = Number(r.dados.pontos) || 0;
+  $("#custom-pontos").value = magia.efeitos.custom.pontos;
+  out.textContent = `sugestão: ${r.dados.pontos} pts — ${r.dados.justificativa}`;
+  atualizar(false);
 }
 
+// ---- IA revisora: sugere mudanças na descrição, efeito e aprimoramentos ----
+const plainParaHtml = (t) => esc(t).replace(/\n/g, "<br>");
+
+async function revisarComIA() {
+  const out = $("#ia-rev");
+  if (!localStorage.getItem("cm_apikey")) return pedirChave(out, revisarComIA);
+  out.textContent = "a IA está lendo sua magia…";
+  const r0 = calcular(magia, TABELA);
+  const aprsTxt = magia.aprimoramentos.map((a, i) =>
+    `[${i}] ${a.truque ? "Truque" : "+" + a.pm + " PM"}: ${a.texto}${a.requerCirculo ? ` (requer ${a.requerCirculo}º)` : ""}`).join("\n") || "(nenhum)";
+  const r = await chamarIA(
+    `Você é um mestre experiente de Tormenta 20 revisando uma magia customizada de jogador. ${REGUA_IA()}
+Sugira melhorias de CLAREZA e BALANCEAMENTO: reescrever a descrição (mantendo os códigos {dano}, {alvo}, {teste} etc. quando existirem), ajustar o efeito especial, corrigir texto/PM/círculo de aprimoramentos existentes, ou propor aprimoramentos novos no estilo oficial. Só sugira o que realmente melhora — pode devolver lista vazia. Máximo 5 sugestões.
+Responda APENAS um JSON:
+{"comentario":"<1-2 frases gerais sobre a magia>",
+ "sugestoes":[
+  {"tipo":"descricao","novo":"<texto>","motivo":"<curto>"},
+  {"tipo":"efeitoespecial","novo":"<texto>","motivo":"<curto>"},
+  {"tipo":"apr-editar","indice":<n>,"pm":<n>,"texto":"<texto>","requerCirculo":<2-5 ou null>,"motivo":"<curto>"},
+  {"tipo":"apr-novo","pm":<n>,"texto":"<texto>","requerCirculo":<2-5 ou null>,"truque":<bool>,"motivo":"<curto>"}
+ ]}`,
+    `MAGIA (${r0.total}/${r0.orcamento} pontos):
+${textoPlano(magia, r0)}
+
+Efeito especial (texto puro): ${htmlParaTexto(magia.efeitos.custom?.texto || "") || "(nenhum)"}
+Aprimoramentos indexados:
+${aprsTxt}`,
+    3000);
+  if (r.semChave) return pedirChave(out, revisarComIA);
+  if (r.erro) { out.replaceChildren(el("span", { className: "erro-txt", textContent: r.erro })); return; }
+
+  const d = r.dados;
+  out.replaceChildren(el("p", { className: "explica", textContent: d.comentario || "" }));
+  const sugs = Array.isArray(d.sugestoes) ? d.sugestoes : [];
+  if (!sugs.length) out.append(el("p", { className: "explica", textContent: "a IA não sugeriu mudanças." }));
+
+  for (const s of sugs) {
+    let rotulo = "", antes = "", aplicar = null;
+    if (s.tipo === "descricao") {
+      rotulo = "Descrição"; antes = htmlParaTexto(magia.descricao) || "(vazia)";
+      aplicar = () => { magia.descricao = plainParaHtml(s.novo); };
+    } else if (s.tipo === "efeitoespecial") {
+      rotulo = "Efeito especial"; antes = htmlParaTexto(magia.efeitos.custom?.texto || "") || "(nenhum)";
+      aplicar = () => {
+        magia.efeitos.custom = magia.efeitos.custom || { texto: "", pontos: 0 };
+        magia.efeitos.custom.texto = plainParaHtml(s.novo);
+      };
+    } else if (s.tipo === "apr-editar" && magia.aprimoramentos[s.indice]) {
+      const ap = magia.aprimoramentos[s.indice];
+      rotulo = `Aprimoramento ${s.indice + 1} (editar)`;
+      antes = `${ap.truque ? "Truque" : "+" + ap.pm + " PM"}: ${ap.texto}${ap.requerCirculo ? ` (requer ${ap.requerCirculo}º)` : ""}`;
+      aplicar = () => Object.assign(ap, { pm: s.pm ?? ap.pm, texto: s.texto ?? ap.texto, requerCirculo: s.requerCirculo ?? null });
+    } else if (s.tipo === "apr-novo") {
+      rotulo = "Aprimoramento novo"; antes = "(não existe)";
+      aplicar = () => magia.aprimoramentos.push({ pm: s.pm ?? 1, texto: s.texto || "", truque: !!s.truque, requerCirculo: s.requerCirculo ?? null, fonte: "IA" });
+    } else continue;
+
+    const depois = s.tipo === "descricao" || s.tipo === "efeitoespecial" ? s.novo
+      : `${s.truque ? "Truque" : "+" + (s.pm ?? "?") + " PM"}: ${s.texto}${s.requerCirculo ? ` (requer ${s.requerCirculo}º)` : ""}`;
+    const btn = el("button", {
+      className: "bt mini", textContent: "aplicar",
+      onclick: () => {
+        aplicar();
+        btn.textContent = "aplicado ✓"; btn.disabled = true;
+        const r2 = atualizar(false); // sem renderPasso: manter a lista de sugestões viva
+        const carta = $(".carta-revisao");
+        if (carta) carta.innerHTML = cartaHtml(magia, r2);
+      },
+    });
+    out.append(el("div", { className: "sug-card" },
+      el("div", { className: "sug-cab" }, el("b", {}, rotulo), s.motivo ? el("span", { className: "op-explica", textContent: " — " + s.motivo }) : null, btn),
+      el("div", { className: "sug-antes" }, el("i", {}, "atual: "), antes),
+      el("div", { className: "sug-depois" }, el("i", {}, "sugestão: "), depois),
+    ));
+  }
+}
+
+// ============================================================ carta: ver carta.mjs
 function textoPlano(m, r) {
   const linhas = [
     `${(m.nome || "Sem Nome").toUpperCase()} (${m.escola} ${m.tipo} 1)`,
@@ -631,7 +663,7 @@ function textoPlano(m, r) {
     if (m.efeitos.custom?.texto) e2.push(htmlParaTexto(m.efeitos.custom.texto));
     if (e2.length) linhas.push(e2.join("; ") + ".");
   }
-  for (const a of m.aprimoramentos.filter((a) => a.texto)) linhas.push(`${a.truque ? "Truque" : "+" + a.pm + " PM"}: ${a.texto}`);
+  for (const a of m.aprimoramentos.filter((a) => a.texto)) linhas.push(`${a.truque ? "Truque" : "+" + a.pm + " PM"}: ${a.texto}${a.requerCirculo ? ` (requer ${a.requerCirculo}º círculo)` : ""}`);
   linhas.push(`[${r.total}/${r.orcamento} pontos — magias.raynathus.com.br]`);
   return linhas.join("\n");
 }
@@ -699,6 +731,7 @@ async function sincronizar() {
   try {
     const st = await (await fetch(`/api/state?user=${encodeURIComponent(user)}`)).json();
     minhas = st.minhas;
+    for (const m of minhas) if (!m.id) m.id = idNovo();
     window.__publicadas = st.publicadas;
     abrirAba(abaAtiva);
   } catch {}
@@ -714,6 +747,9 @@ async function salvarServidor() {
   abrirAba(abaAtiva);
 }
 
+const linkDaMagia = () => `${location.origin}/m/${magia.id}`;
+const estaPublicada = () => (window.__publicadas || []).some((p) => p.id === magia.id);
+
 async function publicar() {
   if (!user) return aviso("entre com seu nome primeiro", true);
   const r = calcular(magia, TABELA);
@@ -721,11 +757,17 @@ async function publicar() {
   if (!magia.nome) return aviso("dê um nome à magia", true);
   const j = await (await fetch("/api/publicar", { method: "POST", body: JSON.stringify({ autor: user, magia }) })).json();
   if (j.ok) {
-    const url = `${location.origin}/m/${j.id}`;
-    navigator.clipboard?.writeText(url);
-    aviso(`publicada! link copiado: ${url}`);
-    sincronizar();
+    navigator.clipboard?.writeText(linkDaMagia());
+    aviso(`publicada! link copiado: ${linkDaMagia()}`);
+    await sincronizar();
+    renderPasso();
   } else aviso(j.erro, true);
+}
+
+async function despublicar() {
+  const j = await (await fetch("/api/despublicar", { method: "POST", body: JSON.stringify({ autor: user, id: magia.id }) })).json();
+  if (j.ok) { aviso("despublicada — o link parou de funcionar"); await sincronizar(); renderPasso(); }
+  else aviso(j.erro, true);
 }
 
 let abaAtiva = "minhas";
@@ -801,14 +843,6 @@ function usarReferencia(ex) {
   scrollTo({ top: 0, behavior: "smooth" });
 }
 
-async function verPublicada(id) {
-  const m = await (await fetch(`/api/magia/${id}`)).json();
-  if (m.erro) return;
-  magia = { ...novaMagia(), ...m };
-  passoAtual = passosVisiveis().length - 1;
-  renderPasso(); atualizar();
-}
-
 // ============================================================ boot
 async function boot() {
   [TABELA, TARIFAS, EXEMPLOS] = await Promise.all(
@@ -817,6 +851,7 @@ async function boot() {
 
   const rascunho = localStorage.getItem("cm_rascunho");
   if (rascunho) try { magia = { ...novaMagia(), ...JSON.parse(rascunho) }; } catch {}
+  if (!magia.id) magia.id = idNovo();
 
   $("#bt-voltar").onclick = () => { passoAtual = Math.max(0, passoAtual - 1); renderPasso(); };
   $("#bt-avancar").onclick = () => { passoAtual = Math.min(passosVisiveis().length - 1, passoAtual + 1); renderPasso(); };
@@ -828,8 +863,6 @@ async function boot() {
   renderPasso();
   atualizar();
 
-  const mView = location.pathname.match(/^\/m\/(\w+)/);
-  if (mView) verPublicada(mView[1]);
   abrirAba("minhas");
 }
 

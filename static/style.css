@@ -282,3 +282,15 @@ footer a { color: var(--ouro); }
 .rt-area:empty::before { content: attr(data-ph); color: #6b5a48; font-style: italic; pointer-events: none; }
 .ia-box { display: flex; flex-direction: column; gap: 4px; align-items: flex-start; }
 #ia-res { max-width: 420px; }
+
+/* sugestões da IA (revisão) */
+.sug-card { border: 1px solid rgba(201, 162, 39, .3); border-radius: 10px; padding: 10px 12px; margin: 8px 0; background: rgba(201, 162, 39, .05); }
+.sug-cab { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 6px; }
+.sug-cab b { color: var(--ouro-claro); font-family: "Cinzel", serif; font-size: .9rem; }
+.sug-cab .bt { margin-left: auto; }
+.sug-antes, .sug-depois { font-size: .92rem; padding: 4px 0; white-space: pre-line; }
+.sug-antes { color: var(--texto-2); }
+.sug-antes i, .sug-depois i { color: var(--ouro); font-variant: small-caps; font-style: normal; }
+.sug-depois { border-top: 1px dashed rgba(201, 162, 39, .2); color: var(--texto); }
+.apr-lado { display: flex; flex-direction: column; gap: 4px; max-width: 150px; }
+.apr-item .requer { font-size: .82rem; padding: 4px 6px; }

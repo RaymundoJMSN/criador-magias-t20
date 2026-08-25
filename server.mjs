@@ -6,6 +6,7 @@ import { join, dirname, extname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { randomBytes } from "node:crypto";
 import { calcular } from "./static/custo.mjs";
+import { cartaHtml, esc } from "./static/carta.mjs";
 
 const RAIZ = dirname(fileURLToPath(import.meta.url));
 const DADOS = join(RAIZ, "dados");
@@ -83,7 +84,7 @@ async function tratar(req, res) {
     const user = url.searchParams.get("user") || "";
     return json(res, 200, {
       minhas: estado.usuarios[user] || [],
-      publicadas: Object.entries(estado.publicadas).map(([id, m]) => ({ id, ...m })),
+      publicadas: Object.entries(estado.publicadas).map(([id, m]) => ({ ...m, id })),
     });
   }
 
@@ -111,8 +112,11 @@ async function tratar(req, res) {
     const e = validarMagia(magia);
     if (e) return json(res, 400, { erro: e });
     if (magia.pontos.gasto > magia.pontos.orcamento) return json(res, 400, { erro: "estourou o orçamento — só rascunho" });
-    const id = randomBytes(4).toString("hex");
-    estado.publicadas[id] = { ...magia, autor, publicadaEm: new Date().toISOString() };
+    const id = typeof magia.id === "string" && /^[a-f0-9]{6,16}$/.test(magia.id) ? magia.id : randomBytes(4).toString("hex");
+    const jaTem = estado.publicadas[id];
+    if (jaTem && jaTem.autor !== autor) return json(res, 403, { erro: "essa magia é de outra pessoa" });
+    // mesmo id = mesma magia: republicar atualiza, nunca duplica
+    estado.publicadas[id] = { ...magia, id, autor, publicadaEm: jaTem?.publicadaEm || new Date().toISOString() };
     salvar();
     return json(res, 200, { ok: true, id });
   }
@@ -154,7 +158,26 @@ async function tratar(req, res) {
     return json(res, 200, { sugestoes: sugerirAprimoramentos(f, tratar.aprs) });
   }
 
-  if (p.startsWith("/m/")) return estatico(res, join(RAIZ, "static", "index.html"));
+  if (p.startsWith("/m/")) {
+    const m = estado.publicadas[p.slice(3).replace(/[^a-f0-9]/g, "")];
+    const corpoHtml = m
+      ? `<article class="carta">${cartaHtml(m, { total: m.pontos?.gasto ?? "?", orcamento: m.pontos?.orcamento ?? 10, valido: true })}</article>`
+      : `<p class="nao-achei">Essa magia não existe mais — pode ter sido despublicada.</p>`;
+    const pagina = `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>${m ? esc(m.nome) : "Magia não encontrada"} — Criador de Magias T20</title>
+<link rel="stylesheet" href="/style.css">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🕯️</text></svg>">
+<style>body{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;padding:20px}
+.carta{max-width:640px;width:100%}.nao-achei{color:#a8977c;font-style:italic}
+.rodape-view{margin-top:22px;font-size:.85rem;color:#a8977c}.rodape-view a{color:#c9a227}</style>
+</head><body><div class="brasa" aria-hidden="true"></div>
+${corpoHtml}
+<div class="rodape-view"><a href="/">✦ crie a sua magia</a></div>
+</body></html>`;
+    res.writeHead(m ? 200 : 404, { "content-type": "text/html; charset=utf-8" });
+    return res.end(pagina);
+  }
   if (p === "/") return estatico(res, join(RAIZ, "static", "index.html"));
   if (p.startsWith("/data/")) return estatico(res, join(RAIZ, "data", p.slice(6).replace(/[^\w.-]/g, "")));
   return estatico(res, join(RAIZ, "static", p.slice(1).replace(/[^\w./-]/g, "").replace(/\.\./g, "")));
@@ -231,7 +254,13 @@ if (CHECK) {
       const ruim = await fetch(`${base}/api/user/ray`, { method: "PUT", body: JSON.stringify({ magias: [{ nome: "x", circulo: 2 }] }) });
       if (ruim.status !== 400) return falha("devia recusar 2º círculo");
       const idx = await fetch(`${base}/m/${pub.id}`);
-      if (idx.status !== 200) return falha("/m/ não serviu index");
+      const pagina = await idx.text();
+      if (idx.status !== 200 || !pagina.includes("Teste")) return falha("/m/ não rendeu a magia");
+      // republicar com o mesmo id NÃO duplica
+      const pub2 = await (await fetch(`${base}/api/publicar`, { method: "POST", body: JSON.stringify({ autor: "ray", magia: { ...magia, id: pub.id } }) })).json();
+      if (pub2.id !== pub.id) return falha("republicar mudou o id");
+      const roubo = await fetch(`${base}/api/publicar`, { method: "POST", body: JSON.stringify({ autor: "ladrao", magia: { ...magia, id: pub.id } }) });
+      if (roubo.status !== 403) return falha("deixou outro autor sobrescrever");
       console.log("server.mjs --check OK");
       server.close();
     } catch (e) { falha(e.message); }

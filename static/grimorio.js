@@ -1,6 +1,6 @@
 // Grimório: pesquisa e filtros sobre as oficiais + publicadas da mesa.
 // Componente reutilizável: página /grimorio, gaveta lateral do criador e painel do /m/.
-import { cartaHtml, esc } from "/carta.mjs";
+import { cartaHtml, cartaOficialHtml } from "/carta.mjs";
 
 const el = (tag, props = {}, ...filhos) => {
   const n = Object.assign(document.createElement(tag), props);
@@ -13,7 +13,7 @@ const TIPOS = ["Arcana", "Divina", "Universal"];
 const ESCOLAS = ["Abjuração", "Adivinhação", "Convocação", "Encantamento", "Evocação", "Ilusão", "Necromancia", "Transmutação"];
 const FONTES = [["oficiais", "📕 oficiais"], ["mesa", "🔗 da mesa"]];
 
-export function montarGrimorio(raiz, { compacto = false, qInicial = "", abrir = null } = {}) {
+export function montarGrimorio(raiz, { compacto = false, qInicial = "", abrir = null, aoEscolher = null } = {}) {
   const filtro = { circulo: null, tipo: null, escola: null, fonte: null, q: qInicial };
   let TUDO = { oficiais: [], publicadas: [] };
   let buscaTimer;
@@ -78,7 +78,7 @@ export function montarGrimorio(raiz, { compacto = false, qInicial = "", abrir = 
     for (const m of itens) {
       lista.append(el("div", {
         className: "card" + (m.fonte === "mesa" ? " card-mesa" : ""),
-        onclick: (ev) => expandir(ev.currentTarget, m),
+        onclick: (ev) => aoEscolher ? aoEscolher(m) : expandir(ev.currentTarget, m),
       },
         el("h3", { textContent: m.nome }),
         el("div", { className: "meta", textContent: `${m.circulo}º · ${m.escola} · ${m.grupo}` + (m.autor ? ` · por ${m.autor}` : "") }),
@@ -104,12 +104,9 @@ export function montarGrimorio(raiz, { compacto = false, qInicial = "", abrir = 
       } else {
         const t = await (await fetch(`/api/texto/${m.slug}`)).json();
         if (t.erro) { box.textContent = "texto não disponível neste servidor."; return; }
-        box.replaceChildren(
-          el("div", { className: "to-stats", innerHTML: Object.entries(t.stats).map(([k, v]) => `<b>${k}:</b> ${esc(v)}`).join("; ") }),
-          el("p", { className: "to-desc", textContent: t.descricao }),
-          ...t.aprimoramentos.map((a) => el("div", { className: "to-apr", innerHTML: `<b>${esc(a.custo)}:</b> ${esc(a.texto)}` })),
-          el("div", { className: "to-rodape" }, el("span", { textContent: t.publicacao })),
-        );
+        const carta = el("article", { className: "carta carta-mini", onclick: (e) => e.stopPropagation() });
+        carta.innerHTML = cartaOficialHtml(t);
+        box.replaceWith(carta);
       }
       card.scrollIntoView({ behavior: "smooth", block: "nearest" });
     } catch { box.textContent = "erro ao carregar."; }

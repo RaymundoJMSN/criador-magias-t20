@@ -192,35 +192,38 @@ async function tratar(req, res) {
   }
 
   if (p.startsWith("/m/")) {
-    const m = estado.publicadas[p.slice(3).replace(/[^a-f0-9]/g, "")];
-    const corpoHtml = m
-      ? `<article class="carta">${cartaHtml(m, { total: m.pontos?.gasto ?? "?", orcamento: m.pontos?.orcamento ?? 10, valido: true })}</article>`
-      : `<p class="nao-achei">Essa magia não existe mais — pode ter sido despublicada.</p>`;
+    const idPedido = p.slice(3).replace(/[^a-f0-9]/g, "");
+    const m = estado.publicadas[idPedido];
     const pagina = `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>${m ? esc(m.nome) : "Magia não encontrada"} — Criador de Magias T20</title>
+<title>${m ? esc(m.nome) : "Quadro de magias"} — Criador de Magias T20</title>
 <link rel="stylesheet" href="/style.css">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🕯️</text></svg>">
-<style>body{padding:20px}
-.view-grid{max-width:1150px;margin:0 auto;display:grid;grid-template-columns:1.1fr .9fr;gap:22px;align-items:start}
-@media (max-width:900px){.view-grid{grid-template-columns:1fr}}
-.col-magia{display:flex;flex-direction:column;align-items:center}
-.carta{max-width:640px;width:100%}.nao-achei{color:#a8977c;font-style:italic}
-.rodape-view{margin-top:22px;font-size:.85rem;color:#a8977c;text-align:center}.rodape-view a{color:#c9a227}
-.painel-grimorio h2{font-family:Cinzel,serif;color:#c9a227;font-size:1.05rem;margin:0 0 8px;letter-spacing:.05em}</style>
-</head><body><div class="brasa" aria-hidden="true"></div>
-<div class="view-grid">
-  <div class="col-magia">${corpoHtml}
-    <div class="rodape-view"><a href="/">✦ crie a sua magia</a> · <a href="/grimorio">📖 grimório completo</a></div>
-  </div>
-  <aside class="painel painel-grimorio">
-    <h2>📖 Pesquisar outras magias</h2>
-    <div id="g-view"></div>
-  </aside>
+</head><body class="pagina-quadro"><div class="brasa" aria-hidden="true"></div>
+<div class="quadro-topo">
+  <b>Quadro de magias</b>
+  <span class="explica">arraste as cartas pelo título · clique numa magia do grimório pra abrir no quadro</span>
+  <span><a class="link-ouro" href="/">✦ criar magia</a> · <a class="link-ouro" href="/grimorio">📖 grimório</a></span>
 </div>
+<div id="quadro" class="quadro">${m ? "" : `<p class="nao-achei">Essa magia não existe mais — pode ter sido despublicada. Use o grimório 📖 pra abrir outras.</p>`}</div>
+<button class="bt bt-grimorio" id="q-abrir-grimorio" title="grimório">📖</button>
+<aside class="gaveta" id="q-gaveta">
+  <div class="gaveta-cab"><b>📖 Grimório</b>
+    <button class="bt mini" id="q-fechar-gaveta">✕ fechar</button></div>
+  <div class="gaveta-corpo"></div>
+</aside>
 <script type="module">
+  import { montarQuadro } from "/quadro.js";
   import { montarGrimorio } from "/grimorio.js";
-  montarGrimorio(document.querySelector("#g-view"), { compacto: true });
+  const quadro = montarQuadro(document.querySelector("#quadro"));
+  const gaveta = document.querySelector("#q-gaveta");
+  document.querySelector("#q-abrir-grimorio").onclick = () => gaveta.classList.toggle("aberta");
+  document.querySelector("#q-fechar-gaveta").onclick = () => gaveta.classList.remove("aberta");
+  montarGrimorio(gaveta.querySelector(".gaveta-corpo"), {
+    compacto: true,
+    aoEscolher: (m) => m.fonte === "mesa" ? quadro.abrirPublicada(m.id) : quadro.abrirOficial(m.slug),
+  });
+  ${m ? `quadro.abrirPublicada(${JSON.stringify(idPedido)});` : ""}
 </script>
 </body></html>`;
     res.writeHead(m ? 200 : 404, { "content-type": "text/html; charset=utf-8" });

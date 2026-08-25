@@ -103,3 +103,18 @@ export function cartaHtml(m, r) {
     <div class="assina">${r.total}/${r.orcamento} pontos${r.valido ? "" : r.precisaAval ? " — aval do mestre" : " — ESTOUROU"}${m.autor ? " · por " + esc(m.autor) : ""}</div>
     </div>`;
 }
+
+// Carta no MESMO estilo para uma magia OFICIAL (dados de /api/texto/<slug>)
+export function cartaOficialHtml(t) {
+  const aprs = (t.aprimoramentos || []).map((a) =>
+    `<div><b>${esc(a.custo)}:</b> ${esc(a.texto)}</div>`).join("");
+  return `
+    <h2>${esc(t.nome)}</h2>
+    <div class="tipo-linha">${esc(t.linha)}</div>
+    <div class="miolo">
+    <div class="stats">${Object.entries(t.stats).map(([k, v]) => `<b>${esc(k)}:</b> ${esc(v)}`).join("; ")}</div>
+    <div class="desc">${esc(t.descricao).replace(/\n/g, "<br>")}</div>
+    ${aprs ? `<div class="apr">${aprs}</div>` : ""}
+    <div class="assina">${esc(t.publicacao || "")}</div>
+    </div>`;
+}

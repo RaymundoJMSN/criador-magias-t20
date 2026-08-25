@@ -2,7 +2,7 @@
 import { calcular, circuloEfetivo, ehOfensiva, tarifaDoTexto } from "/custo.mjs";
 import { ROTULOS, RESTRITO_SINGULAR, FORMAS, esc, sanitizarHtml, htmlParaTexto,
          textoDano, textoCura, textoBonus, textoCond, textoAlvo, textoResistencia,
-         PLACEHOLDERS, substituir, cartaHtml, textoPenalidade } from "/carta.mjs";
+         PLACEHOLDERS, substituir, cartaHtml, cartaOficialHtml, textoPenalidade } from "/carta.mjs";
 
 const $ = (s) => document.querySelector(s);
 const el = (tag, props = {}, ...filhos) => {
@@ -902,17 +902,14 @@ async function expandirReferencia(card, ex) {
   try {
     const t = await (await fetch(`/api/texto/${ex.slug}`)).json();
     if (t.erro) { box.textContent = "texto não disponível neste servidor"; return; }
-    box.replaceChildren(
-      el("div", { className: "to-stats", innerHTML: Object.entries(t.stats).map(([k, v]) => `<b>${k}:</b> ${esc(v)}`).join("; ") }),
-      el("p", { className: "to-desc", textContent: t.descricao }),
-      ...t.aprimoramentos.map((a) => el("div", { className: "to-apr", innerHTML: `<b>${esc(a.custo)}:</b> ${esc(a.texto)}` })),
-      el("div", { className: "to-rodape" },
-        el("span", { textContent: t.publicacao }),
-        ex.preco_efeito != null ? el("button", {
-          className: "bt mini", textContent: `usar como referência (${ex.preco_efeito}pt)`,
-          onclick: (e) => { e.stopPropagation(); usarReferencia(ex); },
-        }) : null),
-    );
+    const carta = el("article", { className: "carta carta-mini", onclick: (e) => e.stopPropagation() });
+    carta.innerHTML = cartaOficialHtml(t);
+    if (ex.preco_efeito != null) carta.append(el("div", { className: "to-rodape" },
+      el("button", {
+        className: "bt mini", textContent: `usar como referência (${ex.preco_efeito}pt)`,
+        onclick: (e) => { e.stopPropagation(); usarReferencia(ex); },
+      })));
+    box.replaceWith(carta);
   } catch { box.textContent = "erro ao carregar"; }
 }
 

@@ -1,5 +1,5 @@
 // Criador de Magias T20 — wizard passo a passo. Vanilla, sem build.
-import { calcular, sugerirPm, circuloEfetivo } from "/custo.mjs";
+import { calcular, circuloEfetivo } from "/custo.mjs";
 
 const $ = (s) => document.querySelector(s);
 const el = (tag, props = {}, ...filhos) => {
@@ -57,15 +57,67 @@ const EXPLICA = {
 };
 const TESTES = ["Fortitude", "Reflexos", "Vontade"];
 const TIPOS_DANO = ["fogo", "frio", "eletricidade", "ácido", "luz", "trevas", "essência", "corte", "impacto", "perfuração", "psíquico"];
+const RESTRITOS = [
+  [null, "qualquer criatura", "afeta tudo — o padrão"],
+  ["humanoides", "só humanoides", "pessoas, orcs, goblins…"],
+  ["animais", "só animais", "bichos naturais"],
+  ["objetos", "só objetos", "itens, portas, armas…"],
+];
+const RESTRITO_SINGULAR = { humanoides: "humanoide", animais: "animal", objetos: "objeto" };
+const FORMAS = { p: { cone: 6, linha: 9, esfera: 3, cilindro: 3, nuvem: 3, quadrado: 3 },
+                 m: { cone: 9, linha: 30, esfera: 6, cilindro: 9, nuvem: 6, quadrado: 9 } };
+const METROS_G = [9, 12, 15, 18, 30];
 
 function novaMagia() {
   return {
     nome: "", tipo: "Arcana", escola: "Evocação", circulo: 1, descricao: "",
-    eixos: { execucao: "padrao", alcance: "curto", duracao: "instantanea", resistencia: "nenhuma", teste: "Reflexos", alvo: { tipo: "alvos", qtd: 1 } },
+    eixos: { execucao: "padrao", alcance: "curto", duracao: "instantanea", resistencia: "nenhuma", teste: "Reflexos", alvo: { tipo: "alvos", qtd: 1, restrito: null } },
     efeitos: {},
     aprimoramentos: [],
     criadaEm: new Date().toISOString(),
   };
+}
+
+// ============================================================ html seguro
+function sanitizarHtml(html) {
+  const t = document.createElement("template");
+  t.innerHTML = html || "";
+  const ok = new Set(["B", "STRONG", "I", "EM", "U", "BR", "DIV", "P"]);
+  const limpa = (n) => {
+    for (const c of [...n.children]) {
+      if (!ok.has(c.tagName)) { c.replaceWith(...c.childNodes); limpa(n); return limpa(n); }
+      for (const a of [...c.attributes]) c.removeAttribute(a.name);
+      limpa(c);
+    }
+  };
+  limpa(t.content);
+  return t.innerHTML;
+}
+
+function htmlParaTexto(html) {
+  const t = document.createElement("template");
+  t.innerHTML = (html || "").replace(/<br\s*\/?>/gi, "\n").replace(/<\/(div|p)>/gi, "\n");
+  return t.content.textContent.replace(/\n{3,}/g, "\n\n").trim();
+}
+
+// editor rich text mínimo: negrito, itálico, enter = quebra de verdade
+function richText({ html, placeholder, oninput, alto }) {
+  const ed = el("div", { className: "rt-area" + (alto ? " alto" : ""), contentEditable: "true", innerHTML: sanitizarHtml(html) });
+  if (placeholder) ed.dataset.ph = placeholder;
+  ed.addEventListener("input", () => oninput(sanitizarHtml(ed.innerHTML)));
+  ed.addEventListener("paste", (e) => {
+    e.preventDefault();
+    document.execCommand("insertText", false, e.clipboardData.getData("text/plain"));
+  });
+  const btn = (rot, cmd, title) => el("button", {
+    type: "button", className: "rt-bt", innerHTML: rot, title,
+    onmousedown: (e) => { e.preventDefault(); document.execCommand(cmd); ed.focus(); },
+  });
+  const wrap = el("div", { className: "rt" },
+    el("div", { className: "rt-barra" }, btn("<b>B</b>", "bold", "negrito"), btn("<i>I</i>", "italic", "itálico")),
+    ed);
+  wrap.editor = ed;
+  return wrap;
 }
 
 // ============================================================ textos da magia
@@ -73,11 +125,20 @@ function textoDano(m) { const d = m.efeitos.dano; return d ? `${d.n}d${d.faces}$
 function textoCura(m) { const c = m.efeitos.cura; return c ? `${c.n}d${c.faces}${c.fixo ? "+" + c.fixo : ""} PV` : "{cura?}"; }
 function textoBonus(m) { return m.efeitos.bonus ? `+${m.efeitos.bonus} em ${m.efeitos.bonusEm || "…"}` : "{bônus?}"; }
 function textoCond(m) { return m.efeitos.condicoes?.length ? m.efeitos.condicoes.join(" e ") : "{condição?}"; }
+function textoArea(a) {
+  const forma = a.forma || "esfera";
+  const metros = a.metros || FORMAS[a.tamanho || "p"]?.[forma] || 6;
+  return forma === "esfera" || forma === "nuvem" || forma === "cilindro"
+    ? `${forma} com ${metros}m de raio` : `${forma} de ${metros}m`;
+}
 function textoAlvo(m) {
   const a = m.eixos.alvo;
   if (a.tipo === "pessoal") return "você";
-  if (a.tipo === "area") return { p: "área pequena (cone de 6m / esfera de 3m)", m: "área média (cone de 9m / esfera de 6m)", g: "área grande (esfera de 9m+)" }[a.tamanho || "p"];
-  return a.qtd === "escolhidas" ? "criaturas escolhidas" : `${a.qtd} criatura${a.qtd > 1 ? "s" : ""}`;
+  if (a.tipo === "area") return textoArea(a);
+  const tipo = a.restrito ? (RESTRITO_SINGULAR[a.restrito] || a.restrito) : "criatura";
+  const plural = a.restrito ? (a.restrito in RESTRITO_SINGULAR ? a.restrito : a.restrito + "s") : "criaturas";
+  if (a.qtd === "escolhidas") return `${plural} escolhidas`;
+  return `${a.qtd} ${a.qtd > 1 ? plural : tipo}`;
 }
 function textoResistencia(m) {
   const r = m.eixos.resistencia;
@@ -87,20 +148,42 @@ const PLACEHOLDERS = {
   dano: textoDano, cura: textoCura, bonus: textoBonus, condicao: textoCond,
   alvo: textoAlvo, alcance: (m) => ROTULOS.alcance[m.eixos.alcance].replace(/ \(.+\)/, ""),
   duracao: (m) => ROTULOS.duracao[m.eixos.duracao], teste: (m) => m.eixos.teste,
+  efeitoespecial: (m) => m.efeitos.custom?.texto ? htmlParaTexto(m.efeitos.custom.texto) : "{efeito especial?}",
 };
-function substituir(texto, m, html) {
-  return texto.replace(/\{(\w+)\}/g, (tudo, chave) => {
+function substituir(textoHtml, m, negrito) {
+  return textoHtml.replace(/\{(\w+)\}/g, (tudo, chave) => {
     const fn = PLACEHOLDERS[chave];
     if (!fn) return tudo;
-    const v = fn(m);
-    return html ? `<b>${esc(v)}</b>` : v;
+    const v = esc(fn(m));
+    return negrito ? `<b>${v}</b>` : v;
   });
 }
 
-// ============================================================ ofensiva?
 const ehOfensiva = (m) => !!m.efeitos.dano || !!m.efeitos.condicoes?.length;
 
-// ============================================================ passos do wizard
+function chipsTermos(m, ta, aoInserir) {
+  const chaves = ["alvo", "alcance", "duracao",
+    ...(m.efeitos.dano ? ["dano"] : []), ...(m.efeitos.cura ? ["cura"] : []),
+    ...(m.efeitos.bonus ? ["bonus"] : []), ...(m.efeitos.condicoes?.length ? ["condicao"] : []),
+    ...(ehOfensiva(m) && m.eixos.resistencia !== "nenhuma" ? ["teste"] : []),
+    ...(m.efeitos.custom ? ["efeitoespecial"] : [])];
+  const box = el("div", { className: "chips" });
+  for (const c of chaves) {
+    if (aoInserir === c) continue; // não oferecer {efeitoespecial} dentro do próprio efeito
+    box.append(el("button", {
+      type: "button", className: "chip",
+      textContent: `{${c}} = ${(PLACEHOLDERS[c](m) + "").slice(0, 40)}`,
+      onmousedown: (e) => {
+        e.preventDefault();
+        ta.focus();
+        document.execCommand("insertText", false, `{${c}}`);
+      },
+    }));
+  }
+  return box;
+}
+
+// ============================================================ passos
 const PASSOS = [
   { id: "basico", titulo: "A magia", pergunta: "Como ela se chama?", render: passoBasico },
   { id: "efeitos", titulo: "Efeitos", pergunta: "O que a magia faz?", render: passoEfeitos },
@@ -142,10 +225,10 @@ function passoBasico(box) {
       el("input", { id: "w-nome", maxLength: 40, value: magia.nome, placeholder: "Lança de Cinzas", oninput: (e) => { magia.nome = e.target.value; atualizar(false); } })),
     el("div", { className: "campo-linha" },
       el("label", { className: "campo" }, "Tipo",
-        el("select", { value: magia.tipo, onchange: (e) => { magia.tipo = e.target.value; atualizar(); } },
+        el("select", { onchange: (e) => { magia.tipo = e.target.value; atualizar(); } },
           ...["Arcana", "Divina", "Universal"].map((t) => el("option", { textContent: t, selected: magia.tipo === t })))),
       el("label", { className: "campo" }, "Escola",
-        el("select", { value: magia.escola, onchange: (e) => { magia.escola = e.target.value; atualizar(); } },
+        el("select", { onchange: (e) => { magia.escola = e.target.value; atualizar(); } },
           ...["Abjuração", "Adivinhação", "Convocação", "Encantamento", "Evocação", "Ilusão", "Necromancia", "Transmutação"].map((t) => el("option", { textContent: t, selected: magia.escola === t })))),
     ),
   );
@@ -245,14 +328,25 @@ function passoConfig(box) {
     ));
   }
   if (ef.custom) {
+    const rt = richText({
+      html: ef.custom.texto, alto: true,
+      placeholder: "Descreva o efeito. Enter pula linha, B/I formatam, e os códigos {assim} viram os valores reais…",
+      oninput: (h) => { ef.custom.texto = h; atualizar(false); },
+    });
     box.append(el("div", { className: "sub-painel" },
       el("h3", {}, "✨ Efeito especial"),
-      el("textarea", { rows: 2, maxLength: 1000, value: ef.custom.texto, placeholder: "o alvo obedece um comando de uma palavra…", oninput: (e) => { ef.custom.texto = e.target.value; atualizar(false); } }),
-      el("label", { className: "campo mini-campo" }, "custo combinado com o mestre (pontos)",
-        el("input", { type: "number", min: 0, max: 20, step: 0.5, value: ef.custom.pontos, oninput: (e) => { ef.custom.pontos = +e.target.value; atualizar(false); } })),
+      chipsTermos(magia, rt.editor, "efeitoespecial"),
+      rt,
+      el("div", { className: "campo-linha" },
+        el("label", { className: "campo mini-campo" }, "custo combinado com o mestre (pontos)",
+          el("input", { id: "custom-pontos", type: "number", min: 0, max: 20, step: 0.5, value: ef.custom.pontos, oninput: (e) => { ef.custom.pontos = +e.target.value; atualizar(false); } })),
+        el("div", { className: "ia-box" },
+          el("button", { className: "bt mini", textContent: "⚡ sugerir preço com IA", onclick: sugerirPrecoIA }),
+          el("div", { id: "ia-res", className: "explica" })),
+      ),
       el("p", { className: "explica" }, "sem ideia do preço? ",
         el("a", { href: "#galeria", textContent: "veja as referências oficiais", onclick: (e) => { e.preventDefault(); abrirAba("exemplos"); $("#galeria").scrollIntoView({ behavior: "smooth" }); } }),
-        ` — efeitos como os dessas magias custam o valor mostrado (mediana ${TABELA.efeitos.utilitario_base} pts).`),
+        ` — a mediana oficial de um efeito de 1º círculo é ${TABELA.efeitos.utilitario_base} pts.`),
     ));
   }
 }
@@ -261,7 +355,7 @@ function passoConfig(box) {
 function passoAlvo(box) {
   const a = magia.eixos.alvo;
   const ops = el("div", { className: "opcoes" });
-  const escolhe = (novo) => () => { magia.eixos.alvo = novo; if (novo.tipo === "pessoal") magia.eixos.alcance = "pessoal"; renderPasso(); atualizar(); };
+  const escolhe = (novo) => () => { magia.eixos.alvo = { ...a, ...novo, tipo: novo.tipo }; if (novo.tipo === "pessoal") magia.eixos.alcance = "pessoal"; renderPasso(); atualizar(); };
   ops.append(
     cardOpcao({ marcado: a.tipo === "pessoal", titulo: "você mesmo", custo: TABELA.eixos.alvo.pessoal, explica: "buff pessoal — alcance vira pessoal", onclick: escolhe({ tipo: "pessoal" }) }),
     cardOpcao({ marcado: a.tipo === "alvos", titulo: "criaturas / objetos", custo: 0, explica: "1 ou mais alvos que você aponta", onclick: escolhe({ tipo: "alvos", qtd: a.qtd || 1 }) }),
@@ -275,13 +369,42 @@ function passoAlvo(box) {
       ops2.append(cardOpcao({ marcado: String(a.qtd) === String(q), titulo: rot, custo, onclick: () => { a.qtd = q === "escolhidas" ? q : +q; renderPasso(); atualizar(); } }));
     }
     box.append(el("h3", { className: "sub-perg", textContent: "Quantos alvos?" }), ops2);
+
+    const ops3 = el("div", { className: "opcoes" });
+    for (const [chave, rot, exp] of RESTRITOS) {
+      ops3.append(cardOpcao({
+        marcado: (a.restrito || null) === chave && !(a.restritoCustom && chave === null),
+        titulo: rot, custo: chave ? TABELA.eixos.alvo.restrito : 0, explica: exp,
+        onclick: () => { a.restrito = chave; a.restritoCustom = false; renderPasso(); atualizar(); },
+      }));
+    }
+    ops3.append(cardOpcao({
+      marcado: !!a.restritoCustom, titulo: "outro tipo…", custo: TABELA.eixos.alvo.restrito,
+      explica: "mortos-vivos, espíritos, plantas…",
+      onclick: () => { a.restritoCustom = true; a.restrito = a.restrito && !(a.restrito in RESTRITO_SINGULAR) ? a.restrito : "espíritos"; renderPasso(); atualizar(); },
+    }));
+    box.append(el("h3", { className: "sub-perg", textContent: "Atinge o quê? (restringir o tipo devolve ponto — dá pra expandir por aprimoramento)" }), ops3);
+    if (a.restritoCustom) {
+      box.append(el("label", { className: "campo mini-campo" }, "qual tipo?",
+        el("input", { maxLength: 30, value: a.restrito || "", oninput: (e) => { a.restrito = e.target.value; atualizar(false); } })));
+    }
   }
   if (a.tipo === "area") {
     const ops2 = el("div", { className: "opcoes" });
     for (const [t, rot, ex] of [["p", "pequena", "cone 6m · linha 9m · esfera 3m"], ["m", "média", "cone 9m · esfera 6m"], ["g", "grande", "esfera 9m+ · quadrado 18m"]]) {
-      ops2.append(cardOpcao({ marcado: (a.tamanho || "p") === t, titulo: rot, custo: TABELA.eixos.alvo["area_" + t], explica: ex, onclick: () => { a.tamanho = t; renderPasso(); atualizar(); } }));
+      ops2.append(cardOpcao({ marcado: (a.tamanho || "p") === t, titulo: rot, custo: TABELA.eixos.alvo["area_" + t], explica: ex, onclick: () => { a.tamanho = t; delete a.metros; renderPasso(); atualizar(); } }));
     }
     box.append(el("h3", { className: "sub-perg", textContent: "Que tamanho?" }), ops2);
+
+    const cat = a.tamanho || "p";
+    const formas = Object.keys(FORMAS.p);
+    const linha = el("div", { className: "campo-linha" },
+      seletor("forma", a.forma || "esfera", formas, (v) => { a.forma = v; if (cat !== "g") a.metros = FORMAS[cat][v]; renderPasso(); }),
+      cat === "g"
+        ? seletor("metros", a.metros || 9, METROS_G, (v) => (a.metros = +v))
+        : el("span", { className: "explica", textContent: `${FORMAS[cat][a.forma || "esfera"]}m (o tamanho ${cat === "p" ? "pequeno" : "médio"} oficial pra essa forma)` }),
+    );
+    box.append(el("h3", { className: "sub-perg", textContent: "Qual forma?" }), linha);
   }
   if (a.tipo !== "pessoal") {
     box.append(el("h3", { className: "sub-perg", textContent: "A que distância?" }), grupoEixo("alcance"));
@@ -314,93 +437,81 @@ function passoResistencia(box) {
 
 // ---------------------------------------------------------------- passo 7: descrição
 function passoDescricao(box) {
-  const chavesUteis = ["alvo", "alcance", "duracao",
-    ...(magia.efeitos.dano ? ["dano"] : []), ...(magia.efeitos.cura ? ["cura"] : []),
-    ...(magia.efeitos.bonus ? ["bonus"] : []), ...(magia.efeitos.condicoes?.length ? ["condicao"] : []),
-    ...(ehOfensiva(magia) && magia.eixos.resistencia !== "nenhuma" ? ["teste"] : [])];
-  const ta = el("textarea", {
-    rows: 5, maxLength: 2000, value: magia.descricao,
+  const rt = richText({
+    html: magia.descricao, alto: true,
     placeholder: "Ex.: Você lança uma bola de fogo que causa {dano} em {alvo}. Quem falhar no teste de {teste} fica {condicao}.",
-    oninput: (e) => { magia.descricao = e.target.value; atualizar(false); },
+    oninput: (h) => { magia.descricao = h; atualizar(false); },
   });
-  const chips = el("div", { className: "chips" });
-  for (const c of chavesUteis) {
-    chips.append(el("button", {
-      type: "button", className: "chip",
-      textContent: `{${c}} = ${substituir(`{${c}}`, magia)}`,
-      onclick: () => {
-        const i = ta.selectionStart ?? ta.value.length;
-        ta.value = ta.value.slice(0, i) + `{${c}}` + ta.value.slice(ta.selectionEnd ?? i);
-        magia.descricao = ta.value; ta.focus(); atualizar(false);
-      },
-    }));
-  }
   box.append(
-    el("p", { className: "explica", textContent: "Escreva livre. Os códigos {assim} viram os valores reais na carta — se você mudar o dano depois, o texto acompanha:" }),
-    chips, ta,
+    el("p", { className: "explica", textContent: "Escreva livre — enter pula linha, B/I formatam. Os códigos {assim} viram os valores reais na carta; se você mudar o dano depois, o texto acompanha:" }),
+    chipsTermos(magia, rt.editor),
+    rt,
   );
 }
 
-// ---------------------------------------------------------------- passo 8: aprimoramentos
-function sugestoesApr(m) {
-  const s = [];
-  const add = (chave, titulo, texto) => {
-    const sug = sugerirPm(chave, TARIFAS, 1);
-    s.push({ chave, titulo, texto, pm: Math.max(1, Math.round(sug?.pm ?? 2)), n: sug?.generico ? 0 : sug?.n ?? 0 });
+// ---------------------------------------------------------------- passo 8: aprimoramentos REAIS
+let cacheSug = { chave: "", lista: null };
+
+function featuresDaMagia(m) {
+  return {
+    circulo: m.circulo, escola: m.escola,
+    dano: m.efeitos.dano ? { n: m.efeitos.dano.n, faces: m.efeitos.dano.faces } : null,
+    cura: !!m.efeitos.cura, condicoes: m.efeitos.condicoes || [],
+    alvoTipo: m.eixos.alvo.tipo, alvoRestrito: m.eixos.alvo.restrito || null,
+    alcance: m.eixos.alcance, duracao: m.eixos.duracao, resistencia: m.eixos.resistencia,
+    texto: (htmlParaTexto(m.descricao) + " " + htmlParaTexto(m.efeitos.custom?.texto || "")).slice(0, 1500),
   };
-  const d = m.efeitos.dano;
-  if (d) add(`dano+:1d${d.faces}`, `+1d${d.faces} de dano`, `aumenta o dano em +1d${d.faces}.`);
-  if (m.efeitos.cura) add("cura+:1d8", "+1 dado de cura", `aumenta a cura em +1d${m.efeitos.cura.faces}.`);
-  const a = m.eixos.alvo;
-  if (a.tipo === "alvos") add("alvos+:1", "+1 alvo", "aumenta o número de alvos em +1.");
-  if (a.tipo === "area") add("area->", "área maior", "aumenta a área (um passo de tamanho).");
-  if (a.tipo === "alvos" && (d || m.efeitos.condicoes?.length)) add("area->", "vira área", "muda o alvo para uma área pequena.");
-  if (m.eixos.alcance === "toque") add("alcance->:curto", "alcance → curto", "muda o alcance para curto.");
-  if (m.eixos.alcance === "curto") add("alcance->:medio", "alcance → médio", "muda o alcance para médio.");
-  if (m.eixos.alcance === "pessoal" && a.tipo === "pessoal") add("alcance->:toque", "também em aliados", "muda o alcance para toque (pode lançar em outros).");
-  if (m.efeitos.bonus) add("bonus+:1", `bônus +${m.efeitos.bonus + 1}`, "aumenta o bônus em +1.");
-  if (m.efeitos.condicoes?.length) add("efeito-novo", "condição mais pesada", "muda a condição para uma um tier acima.");
-  if (m.eixos.duracao === "cena" || m.eixos.duracao === "1dia") add("duracao->:permanente", "duração → permanente", "muda a duração para permanente.");
-  if (ehOfensiva(m) && m.eixos.resistencia !== "nenhuma") add("resistencia->:reflexos", "troca o teste", "muda a resistência para outro teste.");
-  if (m.eixos.execucao === "padrao" && d) add("efeito-novo", "junto com um ataque", "muda a execução para parte de um ataque corpo a corpo (descarrega a magia no golpe).");
-  add("efeito-novo", "efeito novo (invente)", "");
-  s.push({ chave: "truque", titulo: "truque (versão de graça)", texto: "versão enfraquecida do efeito, sem custo de PM.", pm: 0, n: 14, truque: true });
-  // não repetir sugestão já adicionada com o mesmo texto
-  return s.filter((x) => !m.aprimoramentos.some((ap) => ap.texto === x.texto && x.texto));
 }
 
 function passoAprimoramentos(box) {
-  box.append(el("p", { className: "explica", textContent: "Aprimoramentos não gastam pontos da magia — quem conjura paga PM a mais. Sugestões baseadas NESTA magia, com o preço que o jogo oficial costuma cobrar:" }));
-
-  const sugs = el("div", { className: "sugestoes" });
-  for (const s of sugestoesApr(magia)) {
-    sugs.append(el("button", {
-      type: "button", className: "sugestao",
-      onclick: () => {
-        magia.aprimoramentos.push({ chave: s.chave, texto: s.texto, pm: s.pm, truque: !!s.truque });
-        renderPasso(); atualizar();
-      },
-    },
-      el("b", {}, s.truque ? "Truque" : `+${s.pm} PM`), " ", s.titulo,
-      s.n ? el("span", { className: "op-explica", textContent: ` (${s.n}× nas oficiais)` }) : null,
-    ));
-  }
+  box.append(el("p", { className: "explica", textContent: "Aprimoramentos não gastam pontos da magia — quem conjura paga PM a mais. Sugestões abaixo são aprimoramentos REAIS de magias oficiais parecidas com a sua (pode adaptar texto e custo à vontade):" }));
+  const sugs = el("div", { className: "sugestoes", textContent: "buscando nas oficiais…" });
   box.append(sugs);
+
+  const f = featuresDaMagia(magia);
+  const chave = JSON.stringify(f);
+  const preencher = (lista) => {
+    sugs.replaceChildren();
+    const usados = new Set(magia.aprimoramentos.map((x) => x.texto));
+    for (const s of lista.filter((s) => !usados.has(s.texto))) {
+      sugs.append(el("button", {
+        type: "button", className: "sugestao",
+        title: s.texto,
+        onclick: () => {
+          magia.aprimoramentos.push({ texto: s.texto, pm: s.pm ?? 0, truque: !!s.truque, fonte: s.fonte });
+          renderPasso(); atualizar();
+        },
+      },
+        el("b", {}, s.truque ? "Truque" : `+${s.pm} PM`), " ",
+        el("span", {}, s.texto.length > 90 ? s.texto.slice(0, 90) + "…" : s.texto),
+        el("span", { className: "op-explica", textContent: ` — de ${s.fonte}${s.n > 1 ? ` (e mais ${s.n - 1})` : ""}` }),
+      ));
+    }
+    if (!sugs.children.length) sugs.textContent = "nenhuma oficial parecida — escreva o seu abaixo.";
+  };
+  if (cacheSug.chave === chave && cacheSug.lista) preencher(cacheSug.lista);
+  else fetch("/api/sugestoes-apr", { method: "POST", body: chave })
+    .then((r) => r.json())
+    .then((j) => { cacheSug = { chave, lista: j.sugestoes || [] }; preencher(cacheSug.lista); })
+    .catch(() => (sugs.textContent = "não deu pra buscar as sugestões."));
+
+  box.append(el("div", { className: "acoes" },
+    el("button", { className: "bt mini", textContent: "+ escrever um do zero", onclick: () => { magia.aprimoramentos.push({ texto: "", pm: 1 }); renderPasso(); } }),
+    el("button", { className: "bt mini", textContent: "+ truque (0 PM)", onclick: () => { magia.aprimoramentos.push({ texto: "", pm: 0, truque: true }); renderPasso(); } }),
+  ));
 
   if (magia.aprimoramentos.length) {
     const lista = el("div", { className: "lista-apr" });
     magia.aprimoramentos.forEach((ap, i) => {
-      const sug = sugerirPm(ap.chave || "efeito-novo", TARIFAS, 1);
-      const fora = sug && !sug.generico && !ap.truque && Math.abs((ap.pm || 0) - sug.pm) > 1;
       const pmTotal = 1 + (ap.truque ? 0 : ap.pm);
       const circ = circuloEfetivo(pmTotal);
       lista.append(el("div", { className: "apr-item" },
         ap.truque ? el("b", { className: "pm-fixo" }, "Truque") :
           el("input", { className: "pm", type: "number", min: 0, max: 15, value: ap.pm, onchange: (e) => { ap.pm = +e.target.value; renderPasso(); atualizar(); } }),
         ap.truque ? null : el("span", {}, "PM"),
-        el("textarea", { rows: 1, maxLength: 500, value: ap.texto, placeholder: "o que o aprimoramento faz…", oninput: (e) => { ap.texto = e.target.value; atualizar(false); } }),
-        el("span", { className: "sug" + (fora ? " fora" : "") },
-          (fora ? `oficiais cobram ~${sug.pm} PM · ` : "") + (circ > 1 && !ap.truque ? `requer ${circ}º círculo` : "")),
+        el("textarea", { rows: 2, maxLength: 500, value: ap.texto, placeholder: "o que o aprimoramento faz…", oninput: (e) => { ap.texto = e.target.value; atualizar(false); } }),
+        el("span", { className: "sug" },
+          (ap.fonte ? `de ${ap.fonte} · ` : "") + (circ > 1 && !ap.truque ? `requer ${circ}º círculo` : "")),
         el("button", { className: "bt mini", textContent: "×", onclick: () => { magia.aprimoramentos.splice(i, 1); renderPasso(); atualizar(); } }),
       ));
     });
@@ -412,15 +523,69 @@ function passoAprimoramentos(box) {
 function passoRevisao(box) {
   const r = calcular(magia, TABELA);
   box.append(
-    el("div", { className: "carta-revisao", innerHTML: cartaHtml(magia, r) }),
+    el("div", { className: "carta carta-revisao", innerHTML: cartaHtml(magia, r) }),
     el("div", { className: "acoes" },
       el("button", { className: "bt destaque", textContent: "salvar", onclick: salvarServidor }),
       el("button", { className: "bt", textContent: "copiar texto", onclick: () => { navigator.clipboard.writeText(textoPlano(magia, r)); aviso("texto copiado"); } }),
       el("button", { className: "bt", textContent: "publicar (gera link)", onclick: publicar }),
       el("button", { className: "bt", textContent: "nova magia", onclick: () => { magia = novaMagia(); passoAtual = 0; renderPasso(); atualizar(); } }),
     ),
-    !r.valido ? el("p", { className: "explica erro-txt", textContent: "A magia estourou o orçamento — volte e ajuste (ou combine o extra com o mestre)." }) : null,
   );
+  if (!r.valido) box.append(el("p", { className: "explica erro-txt", textContent: "A magia estourou o orçamento — volte e ajuste (ou combine o extra com o mestre)." }));
+}
+
+// ============================================================ IA: preço do efeito especial
+async function sugerirPrecoIA() {
+  const out = $("#ia-res");
+  let key = localStorage.getItem("cm_apikey") || "";
+  if (!key) {
+    out.replaceChildren(
+      el("span", {}, "cole sua chave da API da Anthropic (fica só no seu navegador): "),
+      el("input", { type: "password", id: "ia-key", placeholder: "sk-ant-…", style: "width:220px" }),
+      el("button", { className: "bt mini", textContent: "guardar", onclick: () => { const v = $("#ia-key").value.trim(); if (v) { localStorage.setItem("cm_apikey", v); sugerirPrecoIA(); } } }),
+    );
+    return;
+  }
+  const efeito = htmlParaTexto(magia.efeitos.custom?.texto || "");
+  if (!efeito) { out.textContent = "escreva o efeito primeiro."; return; }
+  out.textContent = "consultando a IA…";
+
+  const referencias = EXEMPLOS.utilitarias.map((e2) => `${e2.nome}: ${e2.preco_efeito} pts`).join("; ");
+  const system = `Você precifica EFEITOS de magias customizadas de Tormenta 20 num sistema de compra de pontos (1º círculo = 10 pontos no total da magia; o efeito é só uma parte — alcance/duração/área são pagos à parte).
+Régua calibrada nas magias oficiais: dano 2d6 ≈ 6 pts; condição fraca 2, média 5, forte 8, incapacitante 12 (metade se há teste de resistência); bônus +1=2/+2=5/+3=9; efeito utilitário mediano de 1º círculo ≈ ${TABELA.efeitos.utilitario_base} pts.
+Preços de referência dos EFEITOS das oficiais de 1º círculo (efeito puro, sem eixos): ${referencias}.
+Responda APENAS um JSON: {"pontos": <número 0-20, pode .5>, "justificativa": "<1 frase comparando com 1-2 oficiais>"}`;
+  const userMsg = `Efeito a precificar: "${efeito}"
+Contexto da magia: alcance ${magia.eixos.alcance}, duração ${magia.eixos.duracao}, alvo ${textoAlvo(magia)}${ehOfensiva(magia) ? ", resistência " + textoResistencia(magia) : ""}. (Não cobre pelos eixos — só pelo efeito em si.)`;
+
+  try {
+    const resp = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        "x-api-key": key,
+        "anthropic-version": "2023-06-01",
+        "anthropic-dangerous-direct-browser-access": "true",
+      },
+      body: JSON.stringify({ model: "claude-opus-5", max_tokens: 1000, system, messages: [{ role: "user", content: userMsg }] }),
+    });
+    const j = await resp.json();
+    if (!resp.ok) {
+      out.replaceChildren(el("span", { className: "erro-txt", textContent: j.error?.message?.slice(0, 120) || `erro ${resp.status}` }),
+        el("button", { className: "bt mini", textContent: "trocar chave", onclick: () => { localStorage.removeItem("cm_apikey"); sugerirPrecoIA(); } }));
+      return;
+    }
+    if (j.stop_reason === "refusal") { out.textContent = "a IA recusou analisar esse texto."; return; }
+    const texto = (j.content || []).find((b) => b.type === "text")?.text || "";
+    const m = texto.match(/\{[\s\S]*\}/);
+    const r = JSON.parse(m[0]);
+    magia.efeitos.custom.pontos = Number(r.pontos) || 0;
+    $("#custom-pontos").value = magia.efeitos.custom.pontos;
+    out.textContent = `sugestão: ${r.pontos} pts — ${r.justificativa}`;
+    atualizar(false);
+  } catch {
+    out.textContent = "não consegui falar com a API (chave? rede?).";
+  }
 }
 
 // ============================================================ carta
@@ -430,21 +595,25 @@ function cartaHtml(m, r) {
   if (m.efeitos.cura) ef.push(`cura <b>${textoCura(m)}</b>`);
   if (m.efeitos.bonus) ef.push(`<b>${esc(textoBonus(m))}</b>`);
   if (m.efeitos.condicoes?.length) ef.push(`condição: <b>${textoCond(m)}</b>`);
-  if (m.efeitos.custom?.texto && !m.descricao) ef.push(esc(m.efeitos.custom.texto));
+  const custom = m.efeitos.custom?.texto ? substituir(sanitizarHtml(m.efeitos.custom.texto), m, true) : "";
+  const desc = m.descricao ? substituir(sanitizarHtml(m.descricao), m, true) : "";
   const aprs = m.aprimoramentos.filter((a) => a.texto).map((a) =>
     `<div><b>${a.truque ? "Truque" : "+" + a.pm + " PM"}:</b> ${esc(a.texto)}${!a.truque && circuloEfetivo(1 + a.pm) > 1 ? ` <i>(requer ${circuloEfetivo(1 + a.pm)}º círculo)</i>` : ""}</div>`).join("");
   return `
     <h2>${esc(m.nome) || "Sem Nome"}</h2>
-    <div class="tipo-linha">${m.escola} · ${m.tipo} · 1º círculo</div>
+    <div class="tipo-linha">${m.escola} (${m.tipo}) — 1º círculo</div>
+    <div class="miolo">
     <div class="stats">
       <b>Execução:</b> ${ROTULOS.execucao[m.eixos.execucao]}; <b>Alcance:</b> ${ROTULOS.alcance[m.eixos.alcance].replace(/ \(.+\)/, "")};
       <b>Alvo:</b> ${textoAlvo(m)}; <b>Duração:</b> ${ROTULOS.duracao[m.eixos.duracao]};
       <b>Resistência:</b> ${textoResistencia(m)}
     </div>
-    ${m.descricao ? `<div class="desc">${substituir(esc(m.descricao), m, true)}</div>` : ""}
-    ${ef.length && !m.descricao ? `<div class="efeitos-num">${ef.join("; ")}.</div>` : ""}
+    ${desc ? `<div class="desc">${desc}</div>` : ""}
+    ${!desc && custom ? `<div class="desc">${custom}</div>` : ""}
+    ${ef.length && !desc ? `<div class="efeitos-num">${ef.join("; ")}.</div>` : ""}
     ${aprs ? `<div class="apr">${aprs}</div>` : ""}
-    <div class="assina">${r.total}/${r.orcamento} pontos${r.valido ? "" : " — ESTOUROU"}${m.autor ? " · por " + esc(m.autor) : ""}</div>`;
+    <div class="assina">${r.total}/${r.orcamento} pontos${r.valido ? "" : " — ESTOUROU"}${m.autor ? " · por " + esc(m.autor) : ""}</div>
+    </div>`;
 }
 
 function textoPlano(m, r) {
@@ -452,14 +621,14 @@ function textoPlano(m, r) {
     `${(m.nome || "Sem Nome").toUpperCase()} (${m.escola} ${m.tipo} 1)`,
     `Execução: ${ROTULOS.execucao[m.eixos.execucao]}; Alcance: ${ROTULOS.alcance[m.eixos.alcance].replace(/ \(.+\)/, "")}; Alvo: ${textoAlvo(m)}; Duração: ${ROTULOS.duracao[m.eixos.duracao]}; Resistência: ${textoResistencia(m)}`,
   ];
-  if (m.descricao) linhas.push(substituir(m.descricao, m));
+  if (m.descricao) linhas.push(substituir(htmlParaTexto(m.descricao), m));
   else {
     const e2 = [];
     if (m.efeitos.dano) e2.push(textoDano(m));
     if (m.efeitos.cura) e2.push("cura " + textoCura(m));
     if (m.efeitos.bonus) e2.push(textoBonus(m));
     if (m.efeitos.condicoes?.length) e2.push("condição: " + textoCond(m));
-    if (m.efeitos.custom?.texto) e2.push(m.efeitos.custom.texto);
+    if (m.efeitos.custom?.texto) e2.push(htmlParaTexto(m.efeitos.custom.texto));
     if (e2.length) linhas.push(e2.join("; ") + ".");
   }
   for (const a of m.aprimoramentos.filter((a) => a.texto)) linhas.push(`${a.truque ? "Truque" : "+" + a.pm + " PM"}: ${a.texto}`);

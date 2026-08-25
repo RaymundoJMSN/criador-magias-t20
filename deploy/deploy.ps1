@@ -9,8 +9,8 @@ scp (Join-Path $proj 'server.mjs') devilsworks:/home/ubuntu/criador-magias/
 scp -r (Join-Path $proj 'static') devilsworks:/home/ubuntu/criador-magias/
 scp -r (Join-Path $proj 'data') devilsworks:/home/ubuntu/criador-magias/
 scp (Join-Path $proj 'deploy/criador-magias.service') devilsworks:/home/ubuntu/criador-magias/deploy/
-# textos oficiais (local-only, nunca no git); só este arquivo — estado.json dos usuários fica intacto
-if (Test-Path (Join-Path $proj 'dados/textos.json')) {
-  scp (Join-Path $proj 'dados/textos.json') devilsworks:/home/ubuntu/criador-magias/dados/
+# textos oficiais (local-only, nunca no git); só estes arquivos — estado.json dos usuários fica intacto
+foreach ($f in 'dados/textos.json', 'dados/aprimoramentos.json') {
+  if (Test-Path (Join-Path $proj $f)) { scp (Join-Path $proj $f) devilsworks:/home/ubuntu/criador-magias/dados/ }
 }
 ssh devilsworks 'sudo systemctl restart criador-magias && sleep 1 && curl -s -o /dev/null -w "%{http_code}\n" http://127.0.0.1:8070/'

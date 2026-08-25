@@ -1,4 +1,8 @@
 /* Criador de Magias T20 — grimório profano: sangue, ouro e pergaminho */
+@font-face { font-family: 'tormenta20'; src: url('/fontes/Tormenta20.ttf') format('truetype'); font-display: swap; }
+@font-face { font-family: 'iowan'; src: url('/fontes/IowanRegular.ttf') format('truetype'); font-display: swap; }
+@font-face { font-family: 'iowan'; src: url('/fontes/IowanBold.otf') format('opentype'); font-weight: bold; font-display: swap; }
+@font-face { font-family: 'iowan'; src: url('/fontes/IowanBoldItalic.ttf') format('truetype'); font-weight: bold; font-style: italic; font-display: swap; }
 :root {
   --fundo: #120809;
   --painel: #1d0f12;
@@ -184,31 +188,39 @@ input[type="number"] { width: 76px; }
 #msg.erro { color: var(--sangue-vivo); }
 .acoes { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
 
-/* carta pergaminho */
+/* carta no visual da página oficial do Grimório: título na fonte Tormenta20
+   vermelho #d13235, miolo = box vermelho #B6292E com texto branco Iowan */
 .carta, .carta-revisao {
-  background:
-    radial-gradient(120% 100% at 50% 0%, rgba(255, 255, 255, .35), transparent 40%),
-    linear-gradient(160deg, #f6ecd2, var(--pergaminho) 40%, #e2d1a8);
-  color: var(--tinta);
-  border-radius: 4px; padding: 18px 20px;
-  box-shadow: 0 1px 0 #fff inset, 0 14px 34px rgba(0, 0, 0, .6);
-  border: 1px solid #c9b98d;
+  background: transparent;
+  padding: 4px 0 0;
   min-height: 180px;
 }
 .carta h2, .carta-revisao h2 {
-  font-family: "Cinzel", serif; font-weight: 700; margin: 0;
-  color: #7c1418; font-size: 1.4rem; letter-spacing: .02em;
-  border-bottom: 2px solid #7c1418; padding-bottom: 4px;
+  font-family: 'tormenta20', "Cinzel", serif; font-weight: normal; margin: 0;
+  color: #d13235; font-size: 2.1rem; letter-spacing: .01em; text-align: center;
+  text-shadow: 0 2px 6px rgba(0,0,0,.6);
 }
-.carta .tipo-linha, .carta-revisao .tipo-linha { font-variant: small-caps; letter-spacing: .08em; color: #6b5426; margin: 4px 0 10px; }
-.carta .stats, .carta-revisao .stats { font-size: .93rem; line-height: 1.45; }
-.carta .stats b, .carta-revisao .stats b { color: #7c1418; }
-.carta .desc, .carta-revisao .desc { margin: 10px 0; }
-.carta .desc b, .carta-revisao .desc b { color: #7c1418; }
-.carta .efeitos-num, .carta-revisao .efeitos-num { margin: 8px 0; }
-.carta .apr, .carta-revisao .apr { margin-top: 10px; border-top: 1px dashed #b3a37c; padding-top: 8px; font-size: .9rem; }
-.carta .apr b, .carta-revisao .apr b { color: #6b5426; }
-.carta .assina, .carta-revisao .assina { margin-top: 12px; font-size: .8rem; color: #8a7a55; text-align: right; }
+.carta .tipo-linha, .carta-revisao .tipo-linha {
+  font-family: 'iowan', "Alegreya", serif; font-weight: bold;
+  font-variant: small-caps; letter-spacing: .08em; color: #B6992A;
+  margin: 0 0 8px; text-align: center;
+}
+.carta .miolo, .carta-revisao .miolo {
+  background: #B6292E;
+  border: 3px solid #3f0f12; border-radius: 6px;
+  box-shadow: inset 0 0 0 1px rgba(240,220,130,.35), 0 12px 30px rgba(0,0,0,.55);
+  padding: 14px 16px;
+  font-family: 'iowan', "Alegreya", serif; color: #fff;
+}
+.carta .stats, .carta-revisao .stats { font-size: .95rem; line-height: 1.5; }
+.carta .stats b, .carta-revisao .stats b { font-weight: bold; color: #fff; }
+.carta .desc, .carta-revisao .desc { margin: 10px 0 0; }
+.carta .desc b, .carta-revisao .desc b { color: #f0dc82; }
+.carta .efeitos-num, .carta-revisao .efeitos-num { margin: 8px 0 0; }
+.carta .efeitos-num b, .carta-revisao .efeitos-num b { color: #f0dc82; }
+.carta .apr, .carta-revisao .apr { margin-top: 10px; border-top: 1px dashed rgba(240,220,130,.5); padding-top: 8px; font-size: .92rem; }
+.carta .apr b, .carta-revisao .apr b { color: #f0dc82; }
+.carta .assina, .carta-revisao .assina { margin-top: 12px; font-size: .8rem; color: #f0dc82cc; text-align: right; font-style: italic; }
 
 #avisos { font-size: .85rem; color: var(--ouro-claro); margin-top: 8px; }
 #avisos div { padding: 3px 0 3px 20px; position: relative; }
@@ -257,3 +269,16 @@ footer a { color: var(--ouro); }
 .to-apr { padding: 3px 0; border-top: 1px dashed rgba(201, 162, 39, .12); }
 .to-rodape { display: flex; justify-content: space-between; align-items: center; margin-top: 10px;
   color: var(--texto-2); font-size: .8rem; font-style: italic; }
+
+/* editor rich text */
+.rt { border: 1px solid var(--borda); border-radius: 8px; background: #150a0d; }
+.rt-barra { display: flex; gap: 4px; padding: 4px 6px; border-bottom: 1px solid var(--borda); }
+.rt-bt { width: 30px; height: 26px; border: 1px solid var(--borda); border-radius: 5px;
+  background: #241317; color: var(--texto); cursor: pointer; font-family: "Alegreya", serif; }
+.rt-bt:hover { border-color: var(--ouro); }
+.rt-area { min-height: 70px; padding: 10px 12px; outline: none; font-size: .97rem; line-height: 1.5; }
+.rt-area.alto { min-height: 150px; }
+.rt-area:focus { box-shadow: inset 0 0 0 2px var(--sangue); border-radius: 0 0 8px 8px; }
+.rt-area:empty::before { content: attr(data-ph); color: #6b5a48; font-style: italic; pointer-events: none; }
+.ia-box { display: flex; flex-direction: column; gap: 4px; align-items: flex-start; }
+#ia-res { max-width: 420px; }

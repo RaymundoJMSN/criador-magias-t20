@@ -53,6 +53,8 @@ def reconstruir(m, t=TABELA):
             partes["alvo"] = e["alvo"]["escolhidas"]
         else:
             partes["alvo"] = e["alvo"]["1alvo"] + (int(q) - 1) * e["alvo"]["alvo_extra"]
+        if alvo.get("restrito"):
+            partes["alvo"] += e["alvo"].get("restrito", -1)
     else:
         partes["alvo"] = 0
 

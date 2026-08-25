@@ -76,7 +76,8 @@
    },
    "alvo": {
     "tipo": "alvos",
-    "qtd": 1
+    "qtd": 1,
+    "restrito": "animal"
    },
    "aprimoramentos": [
     {
@@ -311,7 +312,8 @@
    },
    "alvo": {
     "tipo": "alvos",
-    "qtd": 1
+    "qtd": 1,
+    "restrito": "animal"
    },
    "aprimoramentos": [
     {
@@ -424,7 +426,8 @@
    },
    "alvo": {
     "tipo": "alvos",
-    "qtd": 1
+    "qtd": 1,
+    "restrito": "objeto"
    },
    "aprimoramentos": [
     {
@@ -548,7 +551,8 @@
    },
    "alvo": {
     "tipo": "alvos",
-    "qtd": 1
+    "qtd": 1,
+    "restrito": "humanoide ou animal"
    },
    "condicoes": [
     "abalado",
@@ -674,7 +678,8 @@
    },
    "alvo": {
     "tipo": "alvos",
-    "qtd": 8
+    "qtd": 8,
+    "restrito": "objeto"
    },
    "aprimoramentos": [
     {
@@ -947,7 +952,8 @@
    },
    "alvo": {
     "tipo": "alvos",
-    "qtd": 1
+    "qtd": 1,
+    "restrito": "arma"
    },
    "aprimoramentos": [
     {
@@ -997,7 +1003,8 @@
    },
    "alvo": {
     "tipo": "alvos",
-    "qtd": 1
+    "qtd": 1,
+    "restrito": "arma"
    },
    "aprimoramentos": [
     {
@@ -1220,7 +1227,8 @@
    },
    "alvo": {
     "tipo": "alvos",
-    "qtd": 1
+    "qtd": 1,
+    "restrito": "arma"
    },
    "aprimoramentos": [
     {
@@ -1279,7 +1287,8 @@
    },
    "alvo": {
     "tipo": "alvos",
-    "qtd": 1
+    "qtd": 1,
+    "restrito": "arma"
    },
    "aprimoramentos": [
     {
@@ -1783,7 +1792,8 @@
    },
    "alvo": {
     "tipo": "alvos",
-    "qtd": 1
+    "qtd": 1,
+    "restrito": "humanoide"
    },
    "condicoes": [
     "desprevenido",
@@ -2429,7 +2439,8 @@
    },
    "alvo": {
     "tipo": "alvos",
-    "qtd": 1
+    "qtd": 1,
+    "restrito": "humanoide"
    },
    "condicoes": [
     "pasmo"
@@ -2735,7 +2746,8 @@
    },
    "alvo": {
     "tipo": "alvos",
-    "qtd": 1
+    "qtd": 1,
+    "restrito": "arma"
    },
    "aprimoramentos": [
     {
@@ -3323,7 +3335,8 @@
    },
    "alvo": {
     "tipo": "alvos",
-    "qtd": 1
+    "qtd": 1,
+    "restrito": "objeto"
    },
    "aprimoramentos": [
     {
@@ -3578,7 +3591,8 @@
    },
    "alvo": {
     "tipo": "alvos",
-    "qtd": 1
+    "qtd": 1,
+    "restrito": "objeto"
    },
    "aprimoramentos": [
     {
@@ -3688,7 +3702,8 @@
    },
    "alvo": {
     "tipo": "alvos",
-    "qtd": 1
+    "qtd": 1,
+    "restrito": "arma"
    },
    "aprimoramentos": [
     {
@@ -4508,7 +4523,8 @@
    },
    "alvo": {
     "tipo": "alvos",
-    "qtd": 1
+    "qtd": 1,
+    "restrito": "animal ou planta"
    },
    "aprimoramentos": [
     {
@@ -4962,7 +4978,8 @@
    },
    "alvo": {
     "tipo": "alvos",
-    "qtd": 1
+    "qtd": 1,
+    "restrito": "humanoide"
    },
    "condicoes": [
     "desprevenido"
@@ -5084,7 +5101,8 @@
    },
    "alvo": {
     "tipo": "alvos",
-    "qtd": 1
+    "qtd": 1,
+    "restrito": "humanoide"
    },
    "aprimoramentos": [
     {
@@ -5548,7 +5566,8 @@
    },
    "alvo": {
     "tipo": "alvos",
-    "qtd": 1
+    "qtd": 1,
+    "restrito": "objeto"
    },
    "aprimoramentos": [
     {
@@ -5745,7 +5764,8 @@
    },
    "alvo": {
     "tipo": "alvos",
-    "qtd": 1
+    "qtd": 1,
+    "restrito": "humanoide"
    },
    "aprimoramentos": [
     {
@@ -6343,7 +6363,8 @@
    },
    "alvo": {
     "tipo": "alvos",
-    "qtd": 1
+    "qtd": 1,
+    "restrito": "humanoide"
    },
    "dano": {
     "dados": "1d6",
@@ -6701,7 +6722,8 @@
    },
    "alvo": {
     "tipo": "alvos",
-    "qtd": 1
+    "qtd": 1,
+    "restrito": "humanoide ou animal"
    },
    "condicoes": [
     "fascinado"
@@ -6868,7 +6890,8 @@
    },
    "alvo": {
     "tipo": "alvos",
-    "qtd": 1
+    "qtd": 1,
+    "restrito": "humanoide ou animal"
    },
    "condicoes": [
     "lento",
@@ -7844,7 +7867,8 @@
    },
    "alvo": {
     "tipo": "alvos",
-    "qtd": 1
+    "qtd": 1,
+    "restrito": "objeto"
    },
    "aprimoramentos": [
     {
@@ -8162,7 +8186,8 @@
    },
    "alvo": {
     "tipo": "alvos",
-    "qtd": 1
+    "qtd": 1,
+    "restrito": "construto"
    },
    "aprimoramentos": [
     {
@@ -10236,7 +10261,8 @@
    },
    "alvo": {
     "tipo": "alvos",
-    "qtd": 1
+    "qtd": 1,
+    "restrito": "humanoide"
    },
    "dano": {
     "dados": "6d8",
@@ -11854,7 +11880,8 @@
    },
    "alvo": {
     "tipo": "alvos",
-    "qtd": 1
+    "qtd": 1,
+    "restrito": "humanoide"
    },
    "condicoes": [
     "caido",
@@ -12142,7 +12169,8 @@
    },
    "alvo": {
     "tipo": "alvos",
-    "qtd": 1
+    "qtd": 1,
+    "restrito": "humanoide"
    },
    "condicoes": [
     "confuso"
@@ -12895,7 +12923,8 @@
    },
    "alvo": {
     "tipo": "alvos",
-    "qtd": 1
+    "qtd": 1,
+    "restrito": "arma"
    },
    "aprimoramentos": [
     {
@@ -13075,7 +13104,8 @@
    },
    "alvo": {
     "tipo": "alvos",
-    "qtd": 1
+    "qtd": 1,
+    "restrito": "objeto"
    },
    "aprimoramentos": [
     {
@@ -13142,7 +13172,8 @@
    },
    "alvo": {
     "tipo": "alvos",
-    "qtd": 1
+    "qtd": 1,
+    "restrito": "humanoide ou animal"
    },
    "aprimoramentos": [
     {
@@ -13570,7 +13601,8 @@
    },
    "alvo": {
     "tipo": "alvos",
-    "qtd": 1
+    "qtd": 1,
+    "restrito": "arma"
    },
    "aprimoramentos": [
     {

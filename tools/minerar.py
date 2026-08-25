@@ -93,6 +93,18 @@ RE_AREA = re.compile(
 RE_NALVOS = re.compile(r"^(?:ate\s+)?(\d+)\s")
 
 
+RESTRITOS = ["humanoide", "animal", "objeto", "arma", "planta", "morto-vivo",
+             "construto", "espirito", "monstro"]
+
+
+def restricao_alvo(n):
+    """'1 humanoide' e mais barato que '1 criatura' — detecta o tipo restrito."""
+    if "criatura" in n:
+        return None
+    achados = [r for r in RESTRITOS if r in n]
+    return " ou ".join(achados) if achados else None
+
+
 def cat_alvo(v):
     n = norm(v)
     m = RE_AREA.search(n)
@@ -102,11 +114,13 @@ def cat_alvo(v):
         return {"tipo": "pessoal"}
     if "criaturas escolhidas" in n or n == "aliados":
         return {"tipo": "alvos", "qtd": "escolhidas"}
+    r = restricao_alvo(n)
+    extra = {"restrito": r} if r else {}
     m = RE_NALVOS.match(n)
     if m:
-        return {"tipo": "alvos", "qtd": int(m.group(1))}
+        return {"tipo": "alvos", "qtd": int(m.group(1)), **extra}
     if n.startswith(("1 ", "arma ", "alimento")):
-        return {"tipo": "alvos", "qtd": 1}
+        return {"tipo": "alvos", "qtd": 1, **extra}
     return {"tipo": "outro"}
 
 

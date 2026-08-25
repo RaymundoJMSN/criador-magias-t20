@@ -143,10 +143,67 @@ async function tratar(req, res) {
     return t ? json(res, 200, t) : json(res, 404, { erro: "sem texto no servidor" });
   }
 
+  // sugestões de aprimoramentos REAIS (busca sobre os 748 oficiais em dados/aprimoramentos.json)
+  if (p === "/api/sugestoes-apr" && req.method === "POST") {
+    if (!tratar.aprs) {
+      try { tratar.aprs = JSON.parse(readFileSync(join(DADOS, "aprimoramentos.json"), "utf-8")); }
+      catch { tratar.aprs = []; }
+    }
+    let f;
+    try { f = await corpo(req); } catch { return json(res, 400, { erro: "corpo inválido" }); }
+    return json(res, 200, { sugestoes: sugerirAprimoramentos(f, tratar.aprs) });
+  }
+
   if (p.startsWith("/m/")) return estatico(res, join(RAIZ, "static", "index.html"));
   if (p === "/") return estatico(res, join(RAIZ, "static", "index.html"));
   if (p.startsWith("/data/")) return estatico(res, join(RAIZ, "data", p.slice(6).replace(/[^\w.-]/g, "")));
   return estatico(res, join(RAIZ, "static", p.slice(1).replace(/[^\w./-]/g, "").replace(/\.\./g, "")));
+}
+
+// ---- ranking de aprimoramentos oficiais contra a magia do usuário ----
+const semAcento = (s) => (s || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
+const tokens = (s) => new Set(semAcento(s).split(/[^a-z0-9d]+/).filter((t) => t.length > 3));
+
+function pontuarApr(f, a) {
+  const m = a.magia;
+  let s = 0;
+  const tem = (t) => a.deltas.includes(t);
+  if (f.dano && tem("dano+")) { s += 3; if (m.dano_dados?.includes("d" + f.dano.faces)) s += 2; }
+  if (f.cura && tem("cura+")) s += 4;
+  if (f.alvoTipo === "alvos" && tem("alvos+")) s += 2;
+  if (f.alvoTipo === "area" && tem("area->")) s += 2;
+  if (f.alvoTipo === "alvos" && (f.dano || f.condicoes?.length) && tem("area->")) s += 1;
+  if (f.alvoRestrito && /muda o alvo para/.test(semAcento(a.texto))) s += 3;
+  if (tem("alcance->") && m.alcance === f.alcance) s += 3;
+  if (tem("duracao->") && (f.duracao === "cena" || f.duracao === "1dia")) s += 1;
+  if (tem("resistencia->") && f.resistencia && f.resistencia !== "nenhuma") s += 2;
+  if (f.condicoes?.length && m.condicoes?.some((c) => f.condicoes.includes(c))) s += 3;
+  if (f.escola === m.escola) s += 1;
+  if (m.circulo === (f.circulo || 1)) s += 2;
+  const tu = tokens(f.texto || "");
+  const ta = tokens(a.texto + " " + m.nome);
+  let overlap = 0;
+  for (const t of tu) if (ta.has(t)) overlap += 0.5;
+  s += Math.min(overlap, 3);
+  return s;
+}
+
+function sugerirAprimoramentos(f, aprs) {
+  const vistos = new Map(); // dedupe por texto normalizado
+  for (const a of aprs) {
+    if (a.pm == null && !a.truque) continue;
+    if (a.restrito) continue; // "apenas devotos de X" não serve de sugestão geral
+    const s = pontuarApr(f, a);
+    if (s <= 2) continue;
+    const chave = semAcento(a.texto).slice(0, 80);
+    const v = vistos.get(chave);
+    if (v) { v.n++; if (s > v.score) { v.score = s; v.pm = a.pm; v.fonte = a.magia.nome; } }
+    else vistos.set(chave, { score: s, n: 1, pm: a.pm, truque: a.truque, texto: a.texto, fonte: a.magia.nome, circuloFonte: a.magia.circulo });
+  }
+  const lista = [...vistos.values()].sort((x, y) => y.score - x.score);
+  const truques = lista.filter((x) => x.truque).slice(0, 2);
+  const normais = lista.filter((x) => !x.truque).slice(0, 10);
+  return [...normais, ...truques].map(({ score, ...resto }) => resto);
 }
 
 const server = http.createServer((req, res) => {

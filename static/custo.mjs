@@ -39,6 +39,7 @@ export function calcular(magia, tabela) {
   else if (alvo.tipo === "area") partes.alvo = e.alvo["area_" + (alvo.tamanho || "p")];
   else if (alvo.qtd === "escolhidas") partes.alvo = e.alvo.escolhidas;
   else partes.alvo = e.alvo["1alvo"] + (Math.max(1, alvo.qtd || 1) - 1) * e.alvo.alvo_extra;
+  if (alvo.tipo === "alvos" && alvo.restrito) partes.alvo += e.alvo.restrito ?? -1;
 
   const condicoes = efeitos.condicoes || [];
   const ofensiva = !!efeitos.dano || condicoes.length > 0 || !!efeitos.resistenciaForcada;

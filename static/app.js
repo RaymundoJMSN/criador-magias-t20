@@ -63,6 +63,15 @@ const METROS_G = [9, 12, 15, 18, 30];
 
 function idNovo() { return [...crypto.getRandomValues(new Uint8Array(4))].map((b) => b.toString(16).padStart(2, "0")).join(""); }
 
+function comecarNova() {
+  const naoSalva = magia.nome && !minhas.some((x) => x.id === magia.id);
+  if (naoSalva && !confirm(`Começar uma magia nova? "${magia.nome}" não foi salva e será descartada.`)) return;
+  magia = novaMagia();
+  passoAtual = 0;
+  renderPasso(); atualizar();
+  scrollTo({ top: 0, behavior: "smooth" });
+}
+
 function novaMagia() {
   return {
     id: idNovo(),
@@ -526,7 +535,7 @@ function passoRevisao(box) {
         ? [el("button", { className: "bt", textContent: "🔗 compartilhar", onclick: () => { navigator.clipboard.writeText(linkDaMagia()); aviso("link copiado: " + linkDaMagia()); } }),
            el("button", { className: "bt", textContent: "despublicar", onclick: despublicar })]
         : [el("button", { className: "bt", textContent: "publicar", onclick: publicar })]),
-      el("button", { className: "bt", textContent: "nova magia", onclick: () => { magia = novaMagia(); passoAtual = 0; renderPasso(); atualizar(); } }),
+      el("button", { className: "bt", textContent: "nova magia", onclick: comecarNova }),
     ),
   );
   if (!r.valido) box.append(el("p", { className: "explica erro-txt", textContent: "A magia estourou o orçamento — volte e ajuste (ou combine o extra com o mestre)." }));
@@ -822,6 +831,9 @@ function abrirAba(aba) {
   const add = (props, ...kids) => g.append(el("div", { className: "card", ...props }, ...kids));
 
   if (aba === "minhas") {
+    g.append(el("button", { className: "card card-nova", onclick: comecarNova },
+      el("h3", { textContent: "✦ criar nova magia" }),
+      el("div", { className: "meta", textContent: "começa do zero, passo a passo" })));
     if (!minhas.length) return g.append(el("div", { className: "vazio", textContent: user ? "nenhuma magia salva ainda" : "entre com seu nome pra ver suas magias" }));
     const pubIds = new Set((window.__publicadas || []).map((p2) => p2.id));
     for (const m of minhas) {
@@ -901,6 +913,7 @@ async function boot() {
   $("#bt-avancar").onclick = () => { passoAtual = Math.min(passosVisiveis().length - 1, passoAtual + 1); renderPasso(); };
   $("#bt-entrar").onclick = () => { const n = $("#nome-user").value.trim(); if (n) { user = n; localStorage.setItem("cm_user", n); entrou(); } };
   $("#bt-sair").onclick = () => { user = ""; localStorage.removeItem("cm_user"); location.reload(); };
+  $("#bt-nova-topo").onclick = comecarNova;
   document.querySelectorAll(".aba").forEach((b) => (b.onclick = () => abrirAba(b.dataset.aba)));
 
   if (user) entrou();

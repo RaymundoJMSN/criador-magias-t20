@@ -300,3 +300,9 @@ footer a { color: var(--ouro); }
   padding: 8px 6px 8px 0; font-size: 1.05rem; line-height: 1; align-self: center; }
 .apr-alca:active { cursor: grabbing; color: var(--ouro); }
 .apr-item.arrastando { opacity: .65; background: rgba(201, 162, 39, .1); border-radius: 8px; }
+
+/* card de criar nova magia */
+.card-nova { border-style: dashed; border-color: rgba(201, 162, 39, .5); background: rgba(201, 162, 39, .04);
+  text-align: left; font: inherit; color: inherit; }
+.card-nova h3 { color: var(--ouro); }
+#bt-nova-topo { margin-left: 6px; }

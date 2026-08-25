@@ -141,4 +141,30 @@ import { tarifaDoTexto } from "./static/custo.mjs";
 const td = tarifaDoTexto("Aumenta o dano em +1d8.", { efeitos: { dano: { faces: 8 } } }, tarifas);
 assert.ok(td && td.pm >= 1 && td.chave.includes("1d8"), JSON.stringify(td));
 
+// v7: Bola de Fogo (2º, blast puro 6d6 esfera 6m, médio, reduz) fecha em 17/18
+r = calcular({
+  circulo: 2,
+  eixos: { execucao: "padrao", alcance: "medio", duracao: "instantanea", resistencia: "reduz-metade", teste: "Reflexos", alvo: { tipo: "area", tamanho: "m", forma: "esfera" } },
+  efeitos: { dano: { n: 6, faces: 6, fixo: 0, tipo: "fogo" } },
+}, tabela);
+assert.equal(r.total, 17, `Bola de Fogo: ${r.total}`);
+assert.ok(r.valido, "Bola de Fogo devia ser válida");
+
+// v7: com condição junto NÃO é blast puro (sem desconto) e cai na margem de aval
+r = calcular({
+  circulo: 2,
+  eixos: { execucao: "padrao", alcance: "medio", duracao: "instantanea", resistencia: "reduz-metade", teste: "Reflexos", alvo: { tipo: "area", tamanho: "m", forma: "esfera" } },
+  efeitos: { dano: { n: 6, faces: 6, fixo: 0, tipo: "fogo" }, condicoes: ["em chamas"] },
+}, tabela);
+assert.ok(!r.valido, "com condição devia passar do orçamento");
+assert.ok(r.total > 18, `esperava >18: ${r.total}`);
+
+// v7: margem do mestre marca precisaAval até +15%
+r = calcular({
+  circulo: 1,
+  eixos: { execucao: "padrao", alcance: "curto", duracao: "cena", resistencia: "anula", teste: "Vontade", alvo: { tipo: "alvos", qtd: 1 } },
+  efeitos: { condicoes: ["inconsciente"], custom: { texto: "ronca alto", pontos: 1 } },
+}, tabela);
+assert.ok(!r.valido && r.precisaAval, `11/10 devia pedir aval: ${JSON.stringify({t:r.total,a:r.precisaAval})}`);
+
 console.log("custo.mjs OK");

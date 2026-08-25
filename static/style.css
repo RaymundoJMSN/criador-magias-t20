@@ -333,3 +333,6 @@ footer a { color: var(--ouro); }
 .gaveta .grimorio-lista { grid-template-columns: 1fr; }
 .gaveta-cab { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
 .gaveta-cab b { font-family: "Cinzel", serif; color: var(--ouro); letter-spacing: .05em; }
+
+/* medidor no estado "aval do mestre" */
+.medidor.aval #medidor-fill { background: linear-gradient(90deg, var(--ouro), var(--ouro-claro)); }

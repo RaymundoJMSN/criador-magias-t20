@@ -1,5 +1,5 @@
 {
- "versao": 6,
+ "versao": 7,
  "comentario": "Precos em pontos de construcao. Ancorados na tarifa de PM dos aprimoramentos oficiais (1 ponto ~ 1 PM de aprimoramento) e calibrados por tools/calibrar.py contra as 101 magias de 1o circulo.",
  "orcamento": {
   "1": 10,
@@ -173,7 +173,15 @@
    "combate": 1.5,
    "amplo": 2.0
   },
-  "comentario_escopo": "especifico: 1 pericia/1 uso; combate: Defesa OU ataques OU resistencias; amplo: categoria inteira de testes"
+  "comentario_escopo": "especifico: 1 pericia/1 uso; combate: Defesa OU ataques OU resistencias; amplo: categoria inteira de testes",
+  "dano_puro_bonus_dados": {
+   "1": 0,
+   "2": 2,
+   "3": 2,
+   "4": 3,
+   "5": 4
+  },
+  "comentario_dano_puro": "blast puro (dano e o UNICO efeito, duracao instantanea) desconta os primeiros N dados do circulo, clampado a 50% do custo do dano — e o que faz Bola de Fogo (6d6, 2o) fechar em 17/18"
  },
  "aprimoramentos": {
   "trilho_pm_circulo": {
@@ -208,5 +216,7 @@
   "4": {},
   "5": {}
  },
- "comentario_orcamento": "medianas das oficiais reconstruidas: 9/17.5/23/33.5/(p75=51, n=12 ruidoso) -> 10/18/25/34/45"
+ "comentario_orcamento": "medianas das oficiais reconstruidas: 9/17.5/23/33.5/(p75=51, n=12 ruidoso) -> 10/18/25/34/45",
+ "aval_mestre_pct": 0.15,
+ "comentario_aval": "entre o orcamento e +15%: 'precisa do aval do mestre' (publica com confirmacao); acima disso: estourou"
 }

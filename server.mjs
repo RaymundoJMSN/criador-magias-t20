@@ -121,7 +121,8 @@ async function tratar(req, res) {
     if (!nomeOk(autor)) return json(res, 400, { erro: "autor inválido" });
     const e = validarMagia(magia);
     if (e) return json(res, 400, { erro: e });
-    if (magia.pontos.gasto > magia.pontos.orcamento) return json(res, 400, { erro: "estourou o orçamento — só rascunho" });
+    const limiteAval = magia.pontos.orcamento + Math.max(1, Math.round(magia.pontos.orcamento * (TABELA.aval_mestre_pct ?? 0.15)));
+    if (magia.pontos.gasto > limiteAval) return json(res, 400, { erro: "estourou além da margem do mestre — só rascunho" });
     const id = typeof magia.id === "string" && /^[a-f0-9]{6,16}$/.test(magia.id) ? magia.id : randomBytes(4).toString("hex");
     const jaTem = estado.publicadas[id];
     if (jaTem && jaTem.autor !== autor) return json(res, 403, { erro: "essa magia é de outra pessoa" });

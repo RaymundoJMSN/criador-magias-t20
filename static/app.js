@@ -765,7 +765,8 @@ function atualizar(rerender = true) {
   $("#medidor-txt").textContent = `${r.total} / ${r.orcamento} pontos`;
   $("#sub-circ").textContent = `${magia.circulo || 1}º círculo`;
   $("#sub-orc").textContent = `${r.orcamento} pontos`;
-  $(".medidor").classList.toggle("estourou", !r.valido);
+  $(".medidor").classList.toggle("estourou", !r.valido && !r.precisaAval);
+  $(".medidor").classList.toggle("aval", !!r.precisaAval);
   $("#avisos").replaceChildren(...r.avisos.map((a) => el("div", { textContent: a })));
   $("#partes").replaceChildren(...Object.entries(r.partes).filter(([, v]) => v !== 0)
     .map(([k, v]) => el("li", { textContent: `${k}: ${v > 0 ? "+" + v : v}` })));
@@ -824,7 +825,8 @@ const estaPublicada = () => (window.__publicadas || []).some((p) => p.id === mag
 async function publicar() {
   if (!user) return aviso("entre com seu nome primeiro", true);
   const r = calcular(magia, TABELA);
-  if (!r.valido) return aviso("estourou o orçamento — ajuste antes de publicar", true);
+  if (!r.valido && !r.precisaAval) return aviso("estourou o orçamento — ajuste antes de publicar", true);
+  if (r.precisaAval && !confirm(`A magia passou do orçamento (${r.total}/${r.orcamento}) — publicar mesmo assim, condicionada ao aval do mestre?`)) return;
   if (!magia.nome) return aviso("dê um nome à magia", true);
   if (magia.efeitos.custom?.texto && !(Number(magia.efeitos.custom.pontos) > 0) &&
       !confirm("O efeito especial está com custo 0 pontos (ainda não combinado com o mestre). Publicar assim mesmo?")) return;

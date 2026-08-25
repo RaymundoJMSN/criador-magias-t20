@@ -68,6 +68,16 @@ export function calcular(magia, tabela) {
       partes.dano *= ef.dano_repetivel_mult ?? 1.5;
       avisos.push(`Dano com duração ${eixos.duracao} repete a cada rodada — custo do dano ×${ef.dano_repetivel_mult ?? 1.5}.`);
     }
+    // blast puro: dano é o ÚNICO efeito e instantâneo -> o círculo dá dados de bônus (Bola de Fogo)
+    const puro = !efeitos.cura && !efeitos.bonus && !efeitos.penalidade && !condicoes.length &&
+      !(efeitos.custom && efeitos.custom.texto) && eixos.duracao === "instantanea";
+    const nBonus = Number(ef.dano_puro_bonus_dados?.[String(magia.circulo || 1)] || 0);
+    if (puro && nBonus > 0) {
+      const precoDado = ef.dano_por_dado[String(efeitos.dano.faces)] ?? ef.dano_por_dado["6"];
+      const desconto = Math.min(Math.min(efeitos.dano.n, nBonus) * precoDado, partes.dano / 2);
+      partes.dano -= desconto;
+      avisos.push(`Blast puro: o ${magia.circulo || 1}º círculo desconta ${nBonus} dado(s) do dano (−${desconto} pts).`);
+    }
   }
   if (efeitos.cura) partes.cura = custoDados(efeitos.cura, ef.cura_por_dado, ef.cura_fixa_por_ponto);
   if (efeitos.dano && efeitos.cura) {
@@ -149,8 +159,11 @@ export function calcular(magia, tabela) {
     }
   }
 
+  const limiteAval = orcamento + Math.max(1, Math.round(orcamento * (t.aval_mestre_pct ?? 0.15)));
+  const precisaAval = !bloqueada && total > orcamento && total <= limiteAval;
+  if (precisaAval) avisos.push(`Passou do orçamento em ${total - orcamento} pt(s) — dá pra publicar, mas precisa do aval do mestre.`);
   return {
-    total, partes, orcamento, avisos, bloqueada,
+    total, partes, orcamento, avisos, bloqueada, precisaAval, limiteAval,
     devolvido: Math.max(devolvidoBruto, -maxDev),
     valido: total <= orcamento && !bloqueada,
   };

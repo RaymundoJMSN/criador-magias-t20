@@ -67,6 +67,14 @@ def reconstruir(m, t=TABELA):
                                      ef["dano_fixo_por_ponto"])
         if m["duracao"]["cat"] in ("sustentada", "cena", "1dia", "permanente"):
             partes["dano"] *= ef.get("dano_repetivel_mult", 1.5)
+        # blast puro: circulo desconta dados (Bola de Fogo)
+        puro = ("cura" not in m and "modificador" not in m and not m.get("condicoes")
+                and m["duracao"]["cat"] == "instantanea")
+        n_bonus = int(ef.get("dano_puro_bonus_dados", {}).get(str(m["circulo"]), 0))
+        if puro and n_bonus:
+            nd, resto = m["dano"]["dados"].split("d")
+            preco = ef["dano_por_dado"][resto.partition("+")[0]]
+            partes["dano"] -= min(min(int(nd), n_bonus) * preco, partes["dano"] / 2)
     if "cura" in m:
         c = custo_dados(m["cura"]["dados"], ef["cura_por_dado"], ef["cura_fixa_por_ponto"])
         if "dano" in partes:  # dano OU cura (Infligir Ferimentos): modos alternativos

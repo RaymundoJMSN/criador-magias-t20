@@ -99,6 +99,6 @@ export function cartaHtml(m, r) {
     ${!desc && custom ? `<div class="desc">${custom}</div>` : ""}
     ${ef.length && !desc ? `<div class="efeitos-num">${ef.join("; ")}.</div>` : ""}
     ${aprs ? `<div class="apr">${aprs}</div>` : ""}
-    <div class="assina">${r.total}/${r.orcamento} pontos${r.valido ? "" : " — ESTOUROU"}${m.autor ? " · por " + esc(m.autor) : ""}</div>
+    <div class="assina">${r.total}/${r.orcamento} pontos${r.valido ? "" : r.precisaAval ? " — aval do mestre" : " — ESTOUROU"}${m.autor ? " · por " + esc(m.autor) : ""}</div>
     </div>`;
 }

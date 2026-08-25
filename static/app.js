@@ -938,6 +938,26 @@ async function boot() {
   $("#bt-entrar").onclick = () => { const n = $("#nome-user").value.trim(); if (n) { user = n; localStorage.setItem("cm_user", n); entrou(); } };
   $("#bt-sair").onclick = () => { user = ""; localStorage.removeItem("cm_user"); location.reload(); };
   $("#bt-nova-topo").onclick = comecarNova;
+
+  // gaveta do grimório: consultar outras magias durante a criação
+  const btG = el("button", { className: "bt bt-grimorio", title: "consultar o grimório", textContent: "📖" });
+  const gaveta = el("aside", { className: "gaveta" },
+    el("div", { className: "gaveta-cab" },
+      el("b", {}, "📖 Grimório"),
+      el("span", {},
+        el("a", { className: "link-ouro", href: "/grimorio", textContent: "página completa", style: "margin-right:10px;font-size:.85rem" }),
+        el("button", { className: "bt mini", textContent: "✕ fechar", onclick: () => gaveta.classList.remove("aberta") }))),
+    el("div", { className: "gaveta-corpo" }));
+  document.body.append(btG, gaveta);
+  let gavetaPronta = false;
+  btG.onclick = async () => {
+    gaveta.classList.toggle("aberta");
+    if (!gavetaPronta) {
+      gavetaPronta = true;
+      const { montarGrimorio } = await import("/grimorio.js");
+      montarGrimorio(gaveta.querySelector(".gaveta-corpo"), { compacto: true });
+    }
+  };
   document.querySelectorAll(".aba").forEach((b) => (b.onclick = () => abrirAba(b.dataset.aba)));
 
   if (user) entrou();

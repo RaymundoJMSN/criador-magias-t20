@@ -306,3 +306,30 @@ footer a { color: var(--ouro); }
   text-align: left; font: inherit; color: inherit; }
 .card-nova h3 { color: var(--ouro); }
 #bt-nova-topo { margin-left: 6px; }
+
+/* grimório */
+.link-ouro { color: var(--ouro); text-decoration: none; }
+.link-ouro:hover { color: var(--ouro-claro); }
+.grimorio-main { max-width: 1100px; margin: 0 auto; }
+.g-busca { width: 100%; margin-bottom: 8px; font-size: 1.05rem; padding: 11px 14px; }
+.g-filtros .chips { margin: 4px 0; }
+.grimorio-lista { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 10px; margin-top: 10px; }
+.card-mesa { border-color: rgba(201, 162, 39, .55); }
+.card-mesa h3::before { content: "🔗 "; font-size: .8em; }
+.carta-mini h2 { font-size: 1.5rem; }
+.carta-mini { cursor: auto; margin-top: 10px; }
+.carta-mini .to-rodape { margin-top: 8px; }
+.carta-mini .to-rodape a { color: #f0dc82; }
+
+/* gaveta lateral do criador */
+.bt-grimorio { position: fixed; right: 14px; bottom: 14px; z-index: 40;
+  font-size: 1.25rem; padding: 10px 14px; border-radius: 999px;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, .6); }
+.gaveta { position: fixed; top: 0; right: 0; bottom: 0; width: min(440px, 94vw); z-index: 50;
+  background: linear-gradient(180deg, var(--painel2), var(--painel));
+  border-left: 1px solid var(--borda); box-shadow: -12px 0 34px rgba(0, 0, 0, .6);
+  padding: 14px 16px; overflow-y: auto; transform: translateX(105%); transition: transform .25s ease; }
+.gaveta.aberta { transform: none; }
+.gaveta .grimorio-lista { grid-template-columns: 1fr; }
+.gaveta-cab { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+.gaveta-cab b { font-family: "Cinzel", serif; color: var(--ouro); letter-spacing: .05em; }

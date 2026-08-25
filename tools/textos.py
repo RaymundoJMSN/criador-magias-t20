@@ -16,6 +16,7 @@ textos = {}
 for m in ds["magias"]:
     textos[m["slug"]] = {
         "nome": m["nome"],
+        "escola": m["escola"], "grupo": m["grupo"], "circulo": m["circulo"],
         "linha": f"{m['escola']} · {m['grupo']} · {m['circulo']}º círculo",
         "stats": {"Execução": m["execucao"]["bruto"], "Alcance": m["alcance"]["bruto"],
                   "Alvo/Área": m["alvo"]["bruto"], "Duração": m["duracao"]["bruto"],

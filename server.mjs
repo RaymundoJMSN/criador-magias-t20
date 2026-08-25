@@ -157,6 +157,28 @@ async function tratar(req, res) {
     return t ? json(res, 200, t) : json(res, 404, { erro: "sem texto no servidor" });
   }
 
+  // grimório: lista leve de todas as magias (oficiais + publicadas), com busca opcional no texto
+  if (p === "/api/grimorio" && req.method === "GET") {
+    if (!tratar.textos) {
+      try { tratar.textos = JSON.parse(readFileSync(join(DADOS, "textos.json"), "utf-8")); }
+      catch { tratar.textos = {}; }
+    }
+    const q = (url.searchParams.get("q") || "").toLowerCase()
+      .normalize("NFD").replace(/[̀-ͯ]/g, "");
+    const norm = (x) => (x || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
+    const bate = (t) => !q || norm(t.nome).includes(q) || norm(t.descricao).includes(q) ||
+      (t.aprimoramentos || []).some((a) => norm(a.texto || a).includes(q));
+    const oficiais = Object.entries(tratar.textos)
+      .filter(([, t]) => bate(t))
+      .map(([slug, t]) => ({ slug, nome: t.nome, escola: t.escola, grupo: t.grupo, circulo: t.circulo }));
+    const publicadas = Object.entries(estado.publicadas)
+      .filter(([, m]) => bate({ nome: m.nome, descricao: m.descricao, aprimoramentos: (m.aprimoramentos || []).map((a) => a.texto) }))
+      .map(([id, m]) => ({ id, nome: m.nome, escola: m.escola, grupo: m.tipo, circulo: m.circulo || 1, autor: m.autor, pontos: m.pontos }));
+    return json(res, 200, { oficiais, publicadas });
+  }
+
+  if (p === "/grimorio") return estatico(res, join(RAIZ, "static", "grimorio.html"));
+
   // sugestões de aprimoramentos REAIS (busca sobre os 748 oficiais em dados/aprimoramentos.json)
   if (p === "/api/sugestoes-apr" && req.method === "POST") {
     if (!tratar.aprs) {
@@ -178,12 +200,27 @@ async function tratar(req, res) {
 <title>${m ? esc(m.nome) : "Magia não encontrada"} — Criador de Magias T20</title>
 <link rel="stylesheet" href="/style.css">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🕯️</text></svg>">
-<style>body{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;padding:20px}
+<style>body{padding:20px}
+.view-grid{max-width:1150px;margin:0 auto;display:grid;grid-template-columns:1.1fr .9fr;gap:22px;align-items:start}
+@media (max-width:900px){.view-grid{grid-template-columns:1fr}}
+.col-magia{display:flex;flex-direction:column;align-items:center}
 .carta{max-width:640px;width:100%}.nao-achei{color:#a8977c;font-style:italic}
-.rodape-view{margin-top:22px;font-size:.85rem;color:#a8977c}.rodape-view a{color:#c9a227}</style>
+.rodape-view{margin-top:22px;font-size:.85rem;color:#a8977c;text-align:center}.rodape-view a{color:#c9a227}
+.painel-grimorio h2{font-family:Cinzel,serif;color:#c9a227;font-size:1.05rem;margin:0 0 8px;letter-spacing:.05em}</style>
 </head><body><div class="brasa" aria-hidden="true"></div>
-${corpoHtml}
-<div class="rodape-view"><a href="/">✦ crie a sua magia</a></div>
+<div class="view-grid">
+  <div class="col-magia">${corpoHtml}
+    <div class="rodape-view"><a href="/">✦ crie a sua magia</a> · <a href="/grimorio">📖 grimório completo</a></div>
+  </div>
+  <aside class="painel painel-grimorio">
+    <h2>📖 Pesquisar outras magias</h2>
+    <div id="g-view"></div>
+  </aside>
+</div>
+<script type="module">
+  import { montarGrimorio } from "/grimorio.js";
+  montarGrimorio(document.querySelector("#g-view"), { compacto: true });
+</script>
 </body></html>`;
     res.writeHead(m ? 200 : 404, { "content-type": "text/html; charset=utf-8" });
     return res.end(pagina);

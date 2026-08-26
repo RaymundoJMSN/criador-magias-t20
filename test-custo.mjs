@@ -190,8 +190,34 @@ r = calcular({
   eixos: { execucao: "padrao", alcance: "curto", duracao: "instantanea", resistencia: "parcial", alvo: { tipo: "alvos", qtd: 1 } },
   efeitos: { dano: { n: 2, faces: 6, fixo: 0, tipo: "fogo" } },
 }, tabela);
-assert.ok(r.avisos.some((a) => a.includes("Adivinhação") && a.includes("dano")), "devia avisar dano em Adivinhação");
-assert.ok(!r.bloqueada, "escola nunca trava");
+assert.ok(r.avisos.some((a) => a.includes("Adivinhação")), "devia avisar dano em Adivinhação");
+assert.ok(r.bloqueada, "dano em Adivinhação (0/28) agora BLOQUEIA");
+
+// cura fora de Evocação/Necromancia bloqueia; em Evocação passa limpo
+const cura = (escola) => calcular({
+  circulo: 1, escola,
+  eixos: { execucao: "padrao", alcance: "toque", duracao: "instantanea", alvo: { tipo: "alvos", qtd: 1 } },
+  efeitos: { cura: { n: 2, faces: 8, fixo: 2 } },
+}, tabela);
+assert.ok(cura("Transmutação").bloqueada, "cura em Transmutação devia bloquear");
+assert.ok(!cura("Evocação").bloqueada, "cura em Evocação é o normal");
+assert.ok(!cura("Necromancia").bloqueada, "cura em Necromancia é rara mas permitida");
+
+// categoria de condição fora do perfil avisa (Transmutação nunca mental)
+r = calcular({
+  circulo: 1, escola: "Transmutação",
+  eixos: { execucao: "padrao", alcance: "curto", duracao: "cena", resistencia: "anula", teste: "Vontade", alvo: { tipo: "alvos", qtd: 1 } },
+  efeitos: { condicoes: ["fascinado"] },
+}, tabela);
+assert.ok(r.avisos.some((a) => a.includes("nunca impõe condição mental")), "mental em Transmutação devia avisar");
+
+// teste fora do típico avisa (Encantamento = Vontade)
+r = calcular({
+  circulo: 1, escola: "Encantamento",
+  eixos: { execucao: "padrao", alcance: "curto", duracao: "cena", resistencia: "anula", teste: "Reflexos", alvo: { tipo: "alvos", qtd: 1 } },
+  efeitos: { condicoes: ["fascinado"] },
+}, tabela);
+assert.ok(r.avisos.some((a) => a.includes("resiste com Vontade")), "Reflexos em Encantamento devia avisar");
 // Necromancia com fogo avisa do tipo; com trevas não
 const nec = (tipo) => calcular({
   circulo: 1, escola: "Necromancia",

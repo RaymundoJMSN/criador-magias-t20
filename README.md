@@ -26,6 +26,8 @@ python tools/tarifas.py     # tarifa PM dos aprimoramentos -> data/tarifas-pm.js
 python tools/features.py    # stats numéricos por magia -> data/features.json
 python tools/calibrar.py    # reconstrói as oficiais com a tabela; teste de regressão
 python tools/exemplos.py    # galeria de preços de referência -> data/exemplos.json
+python tools/minerar_escolas.py  # perfil profundo por escola -> data/perfil-escolas.json (permanente)
+python tools/regras_escolas.py   # deriva as regras de escola da tabela a partir do perfil
 ```
 
 O repo só versiona números e categorias — **nenhum texto das magias**. Tormenta 20

@@ -1,5 +1,5 @@
 {
- "versao": 10,
+ "versao": 11,
  "comentario": "Precos em pontos de construcao. Ancorados na tarifa de PM dos aprimoramentos oficiais (1 ponto ~ 1 PM de aprimoramento) e calibrados por tools/calibrar.py contra as 101 magias de 1o circulo.",
  "orcamento": {
   "1": 10,
@@ -237,100 +237,222 @@
  "comentario_aval": "entre o orcamento e +15%: 'precisa do aval do mestre' (publica com confirmacao); acima disso: estourou",
  "comentario_v8": "sustentada devolve 1 (ocupa concentracao/acao, interrompivel; corpus 2-3o: sustentada compra +1 de efeito vs cena). Execucao 'longa' devolve 4: o corpus nao tem execucao de 1 rodada — o degrau apos completa e 2+ rodadas (~2 acoes completas)",
  "escolas": {
-  "comentario": "minerado das 275 oficiais: frequencia de cada efeito por escola. 'nao'=0 casos, 'raro'<=2 casos. Gera AVISO (nao trava): escola e sabor, o mestre decide.",
+  "comentario": "DERIVADO de data/perfil-escolas.json por tools/regras_escolas.py — nao editar na mao, re-rodar o pipeline.",
   "Abjuração": {
    "n": 39,
-   "dano": "raro",
-   "tiposDano": [
-    "essência"
+   "perfil": "proteções, escudos e seladuras",
+   "dano": "aviso",
+   "dano_n": 2,
+   "tiposDano": [],
+   "cura": "bloqueio",
+   "cura_n": 0,
+   "areas": "ok",
+   "areas_n": 6,
+   "condCategorias": [
+    "corporal",
+    "fisica",
+    "mental",
+    "continua",
+    "medo",
+    "sensorial"
    ],
-   "cura": "nao",
-   "areas": "sim",
-   "perfil": "proteções, escudos e seladuras"
+   "condRaras": false,
+   "testeTipico": "Vontade"
   },
   "Adivinhação": {
    "n": 28,
-   "dano": "nao",
+   "perfil": "informação, sentidos e previsão",
+   "dano": "bloqueio",
+   "dano_n": 0,
    "tiposDano": [],
-   "cura": "nao",
+   "cura": "bloqueio",
+   "cura_n": 0,
    "areas": "raro",
-   "perfil": "informação, sentidos e previsão"
+   "areas_n": 2,
+   "condCategorias": [
+    "corporal"
+   ],
+   "condRaras": true,
+   "testeTipico": null
   },
   "Convocação": {
    "n": 35,
-   "dano": "sim",
+   "perfil": "criaturas e objetos conjurados",
+   "dano": "ok",
+   "dano_n": 11,
    "tiposDano": [
     "impacto",
     "fogo",
-    "ácido",
-    "corte",
-    "perfuração"
+    "acido"
    ],
-   "cura": "nao",
-   "areas": "sim",
-   "perfil": "criaturas e objetos conjurados"
+   "cura": "bloqueio",
+   "cura_n": 0,
+   "areas": "ok",
+   "areas_n": 7,
+   "condCategorias": [
+    "corporal",
+    "mental",
+    "fisica",
+    "continua",
+    "sensorial",
+    "medo"
+   ],
+   "condRaras": false,
+   "testeTipico": null
   },
   "Encantamento": {
    "n": 29,
-   "dano": "raro",
-   "tiposDano": [
-    "psíquico"
-   ],
-   "cura": "nao",
+   "perfil": "mente: sono, fascínio, comando",
+   "dano": "aviso",
+   "dano_n": 1,
+   "tiposDano": [],
+   "cura": "bloqueio",
+   "cura_n": 0,
    "areas": "raro",
-   "perfil": "mente: sono, fascínio, comando"
+   "areas_n": 1,
+   "condCategorias": [
+    "mental",
+    "fisica",
+    "corporal",
+    "medo"
+   ],
+   "condRaras": false,
+   "testeTipico": "Vontade"
   },
   "Evocação": {
    "n": 56,
-   "dano": "sim",
+   "perfil": "energia pura: blasts e cura pela luz",
+   "dano": "ok",
+   "dano_n": 38,
    "tiposDano": [
     "fogo",
     "frio",
-    "eletricidade",
-    "ácido",
+    "acido",
     "luz",
     "impacto",
     "corte",
-    "essência"
+    "essencia",
+    "eletricidade"
    ],
-   "cura": "sim",
-   "areas": "sim",
-   "perfil": "energia pura: blasts e cura pela luz"
+   "cura": "ok",
+   "cura_n": 4,
+   "areas": "ok",
+   "areas_n": 26,
+   "condCategorias": [
+    "corporal",
+    "fisica",
+    "mental",
+    "sensorial",
+    "continua",
+    "medo"
+   ],
+   "condRaras": false,
+   "testeTipico": null
   },
   "Ilusão": {
    "n": 18,
-   "dano": "raro",
-   "tiposDano": [
-    "psíquico",
-    "essência"
+   "perfil": "enganos sensoriais",
+   "dano": "aviso",
+   "dano_n": 1,
+   "tiposDano": [],
+   "cura": "bloqueio",
+   "cura_n": 0,
+   "areas": "ok",
+   "areas_n": 3,
+   "condCategorias": [
+    "fisica",
+    "mental",
+    "sensorial",
+    "corporal"
    ],
-   "cura": "nao",
-   "areas": "raro",
-   "perfil": "enganos sensoriais"
+   "condRaras": false,
+   "testeTipico": "Vontade"
   },
   "Necromancia": {
    "n": 27,
-   "dano": "sim",
+   "perfil": "morte, medo e drenagem (dano de trevas)",
+   "dano": "ok",
+   "dano_n": 11,
    "tiposDano": [
     "trevas"
    ],
-   "cura": "raro",
-   "areas": "sim",
-   "perfil": "morte, medo e drenagem (dano de trevas)"
+   "cura": "aviso",
+   "cura_n": 1,
+   "areas": "ok",
+   "areas_n": 6,
+   "condCategorias": [
+    "corporal",
+    "medo",
+    "mental",
+    "fisica",
+    "sensorial"
+   ],
+   "condRaras": false,
+   "testeTipico": null
   },
   "Transmutação": {
    "n": 43,
-   "dano": "sim",
+   "perfil": "transformar matéria e corpo",
+   "dano": "ok",
+   "dano_n": 10,
    "tiposDano": [
     "impacto",
-    "essência",
-    "fogo",
-    "ácido",
-    "eletricidade"
+    "essencia"
    ],
-   "cura": "nao",
+   "cura": "bloqueio",
+   "cura_n": 0,
    "areas": "raro",
-   "perfil": "transformar matéria e corpo"
+   "areas_n": 3,
+   "condCategorias": [
+    "corporal",
+    "fisica"
+   ],
+   "condRaras": false,
+   "testeTipico": null
   }
+ },
+ "condicao_categoria": {
+  "mental": [
+   "fascinado",
+   "confuso",
+   "pasmo",
+   "esmorecido",
+   "frustrado",
+   "inconsciente"
+  ],
+  "medo": [
+   "abalado",
+   "apavorado"
+  ],
+  "fisica": [
+   "agarrado",
+   "caido",
+   "imovel",
+   "enredado",
+   "lento",
+   "paralisado",
+   "atordoado",
+   "desprevenido"
+  ],
+  "corporal": [
+   "fraco",
+   "debilitado",
+   "exausto",
+   "fatigado",
+   "enjoado",
+   "envenenado",
+   "doente",
+   "sangrando",
+   "vulneravel",
+   "alquebrado"
+  ],
+  "sensorial": [
+   "cego",
+   "surdo",
+   "ofuscado"
+  ],
+  "continua": [
+   "em chamas"
+  ]
  }
 }

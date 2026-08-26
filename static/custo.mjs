@@ -175,26 +175,49 @@ export function calcular(magia, tabela) {
     }
   }
 
-  // coerência de escola (minerada das oficiais): avisa, nunca trava — escola é sabor
+  // coerência de escola — DERIVADA de data/perfil-escolas.json (pipeline permanente):
+  // nível "bloqueio" = 0 casos nas oficiais e semântica clara; "aviso" = raro/fora do perfil
   const escola = t.escolas?.[magia.escola];
-  if (escola) {
-    const strip = (x) => (x || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
+  if (escola && escola.n) {
+    const strip = (x) => (x || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
     if (efeitos.dano) {
-      if (escola.dano === "nao") {
-        avisos.push(`Nenhuma das ${escola.n} oficiais de ${magia.escola} causa dano — o perfil da escola é ${escola.perfil}. Considere Evocação, ou combine com o mestre.`);
+      if (escola.dano === "bloqueio") {
+        bloqueada = true;
+        avisos.push(`${magia.escola} não causa dano em NENHUMA das ${escola.n} oficiais — o perfil é ${escola.perfil}. Troque a escola (ex.: Evocação).`);
       } else if (escola.tiposDano?.length && !escola.tiposDano.some((td) => strip(td) === strip(efeitos.dano.tipo))) {
-        avisos.push(`${magia.escola} oficial causa dano de ${escola.tiposDano.join("/")} — ${efeitos.dano.tipo} foge do perfil da escola.`);
-      } else if (escola.dano === "raro") {
-        avisos.push(`Dano em ${magia.escola} é raríssimo nas oficiais (${escola.perfil}).`);
+        avisos.push(`${magia.escola} oficial causa dano de ${escola.tiposDano.join("/")} — ${efeitos.dano.tipo} foge do perfil.`);
+      } else if (escola.dano === "aviso") {
+        avisos.push(`Dano em ${magia.escola} é raríssimo nas oficiais (${escola.dano_n}/${escola.n}).`);
       }
     }
-    if (efeitos.cura && escola.cura === "nao") {
-      avisos.push(`Nenhuma oficial de ${magia.escola} cura — cura vem de Evocação (luz) ou Necromancia (drenagem).`);
+    if (efeitos.cura) {
+      if (escola.cura === "bloqueio") {
+        bloqueada = true;
+        avisos.push(`Nenhuma das ${escola.n} oficiais de ${magia.escola} cura — cura é Evocação (luz) ou Necromancia (drenagem). Troque a escola.`);
+      } else if (escola.cura === "aviso") {
+        avisos.push(`Cura em ${magia.escola} é rara nas oficiais (drenagem vampírica).`);
+      }
+    }
+    if (condicoes.length) {
+      if (escola.condRaras) {
+        avisos.push(`Condições em ${magia.escola} quase não existem nas oficiais — o perfil é ${escola.perfil}.`);
+      } else if (escola.condCategorias?.length) {
+        const catDe = (c) => {
+          for (const [cat, lista] of Object.entries(t.condicao_categoria || {})) if (lista.includes(c)) return cat;
+          return "outra";
+        };
+        const fora = [...new Set(condicoes.map(catDe))].filter((cat) => cat !== "outra" && !escola.condCategorias.includes(cat));
+        if (fora.length) avisos.push(`${magia.escola} nunca impõe condição ${fora.join("/")} nas oficiais (categorias da escola: ${escola.condCategorias.join(", ")}).`);
+      }
+    }
+    if (ofensiva && res !== "nenhuma" && escola.testeTipico && eixos.teste && eixos.teste !== escola.testeTipico) {
+      avisos.push(`${magia.escola} quase sempre resiste com ${escola.testeTipico} nas oficiais — ${eixos.teste} é incomum.`);
     }
     if (alvo.tipo === "area" && escola.areas === "raro") {
-      avisos.push(`Magia de área é rara em ${magia.escola} nas oficiais.`);
+      avisos.push(`Magia de área é rara em ${magia.escola} nas oficiais (${escola.areas_n}/${escola.n}).`);
     }
   }
+
 
   const limiteAval = orcamento + Math.max(1, Math.round(orcamento * (t.aval_mestre_pct ?? 0.15)));
   const precisaAval = !bloqueada && total > orcamento && total <= limiteAval;

@@ -8,7 +8,7 @@ import { calcular } from "./static/custo.mjs";
 
 const tabela = JSON.parse(readFileSync(new URL("./data/tabela-custos.json", import.meta.url)));
 
-const M = (circulo, eixos, efeitos) => ({ circulo, eixos, efeitos, aprimoramentos: [] });
+const M = (circulo, eixos, efeitos, escola) => ({ circulo, escola, eixos, efeitos, aprimoramentos: [] });
 const alvo1 = { tipo: "alvos", qtd: 1 };
 
 // esperado: "valida" | "aval" | "estoura" | "folgada" (vale, mas bem abaixo — gap documentado)
@@ -117,6 +117,7 @@ for (const [circ, nome, esperado, magia] of CASOS) {
     : r.precisaAval ? "aval" : "estoura";
   const ok = status === esperado ||
     (esperado === "valida" && status === "folgada") || (esperado === "folgada" && status === "valida");
+  if (magia.escola && r.bloqueada) { falhas++; console.log(`  BLOQUEADA por escola?! ${nome}`); }
   if (!ok) falhas++;
   console.log(`${ok ? "✓" : "✗"} ${nome.padEnd(38)} ${String(r.total).padStart(5)}/${r.orcamento}  ${status}${ok ? "" : `  (esperado ${esperado})`}`);
 }

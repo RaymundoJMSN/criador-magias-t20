@@ -1378,6 +1378,31 @@
    "total": 5.0
   },
   {
+   "slug": "espirito-balistico",
+   "nome": "Espírito Balístico",
+   "grupo": "Arcana",
+   "escola": "Convocação",
+   "eixos": {
+    "execucao": "padrao",
+    "alcance": "curto",
+    "duracao": "sustentada",
+    "resistencia": "nenhuma",
+    "alvo": {
+     "tipo": "alvos",
+     "qtd": 1
+    }
+   },
+   "partes": {
+    "execucao": 0,
+    "alcance": 0,
+    "duracao": -1,
+    "alvo": 0,
+    "resistencia": 2,
+    "dano": 5.0
+   },
+   "total": 6.0
+  },
+  {
    "slug": "descobrir-fraqueza",
    "nome": "Descobrir Fraqueza",
    "grupo": "Arcana",
@@ -1401,31 +1426,6 @@
     "condicao": 5
    },
    "total": 7
-  },
-  {
-   "slug": "espirito-balistico",
-   "nome": "Espírito Balístico",
-   "grupo": "Arcana",
-   "escola": "Convocação",
-   "eixos": {
-    "execucao": "padrao",
-    "alcance": "curto",
-    "duracao": "sustentada",
-    "resistencia": "nenhuma",
-    "alvo": {
-     "tipo": "alvos",
-     "qtd": 1
-    }
-   },
-   "partes": {
-    "execucao": 0,
-    "alcance": 0,
-    "duracao": -1,
-    "alvo": 0,
-    "resistencia": 2,
-    "dano": 6.0
-   },
-   "total": 7.0
   },
   {
    "slug": "explosao-de-chamas",
@@ -1706,6 +1706,32 @@
    "total": 9.0
   },
   {
+   "slug": "despedacar",
+   "nome": "Despedaçar",
+   "grupo": "Divina",
+   "escola": "Evocação",
+   "eixos": {
+    "execucao": "padrao",
+    "alcance": "curto",
+    "duracao": "instantanea",
+    "resistencia": "parcial",
+    "alvo": {
+     "tipo": "alvos",
+     "qtd": 1
+    }
+   },
+   "partes": {
+    "execucao": 0,
+    "alcance": 0,
+    "duracao": 0,
+    "alvo": 0,
+    "resistencia": 0,
+    "dano": 5.0,
+    "condicao": 4.0
+   },
+   "total": 9.0
+  },
+  {
    "slug": "toque-congelante",
    "nome": "Toque Congelante",
    "grupo": "Arcana",
@@ -1757,32 +1783,6 @@
    "total": 10.0
   },
   {
-   "slug": "despedacar",
-   "nome": "Despedaçar",
-   "grupo": "Divina",
-   "escola": "Evocação",
-   "eixos": {
-    "execucao": "padrao",
-    "alcance": "curto",
-    "duracao": "instantanea",
-    "resistencia": "parcial",
-    "alvo": {
-     "tipo": "alvos",
-     "qtd": 1
-    }
-   },
-   "partes": {
-    "execucao": 0,
-    "alcance": 0,
-    "duracao": 0,
-    "alvo": 0,
-    "resistencia": 0,
-    "dano": 6.0,
-    "condicao": 4.0
-   },
-   "total": 10.0
-  },
-  {
    "slug": "geiser-caustico",
    "nome": "Geiser Cáustico",
    "grupo": "Arcana",
@@ -1805,56 +1805,6 @@
     "alvo": 2,
     "resistencia": 1,
     "dano": 6.0
-   },
-   "total": 10.0
-  },
-  {
-   "slug": "infligir-ferimentos",
-   "nome": "Infligir Ferimentos",
-   "grupo": "Divina",
-   "escola": "Necromancia",
-   "eixos": {
-    "execucao": "padrao",
-    "alcance": "toque",
-    "duracao": "instantanea",
-    "resistencia": "reduz-metade",
-    "alvo": {
-     "tipo": "alvos",
-     "qtd": 1
-    }
-   },
-   "partes": {
-    "execucao": 0,
-    "alcance": -1,
-    "duracao": 0,
-    "alvo": 0,
-    "resistencia": 1,
-    "dano": 10.0
-   },
-   "total": 10.0
-  },
-  {
-   "slug": "seta-infalivel-de-talude",
-   "nome": "Seta Infalível de Talude",
-   "grupo": "Arcana",
-   "escola": "Evocação",
-   "eixos": {
-    "execucao": "padrao",
-    "alcance": "medio",
-    "duracao": "instantanea",
-    "resistencia": "nenhuma",
-    "alvo": {
-     "tipo": "alvos",
-     "qtd": "escolhidas"
-    }
-   },
-   "partes": {
-    "execucao": 0,
-    "alcance": 1,
-    "duracao": 0,
-    "alvo": 4,
-    "resistencia": 2,
-    "dano": 3.0
    },
    "total": 10.0
   },
@@ -1911,6 +1861,31 @@
    "total": 11.0
   },
   {
+   "slug": "infligir-ferimentos",
+   "nome": "Infligir Ferimentos",
+   "grupo": "Divina",
+   "escola": "Necromancia",
+   "eixos": {
+    "execucao": "padrao",
+    "alcance": "toque",
+    "duracao": "instantanea",
+    "resistencia": "reduz-metade",
+    "alvo": {
+     "tipo": "alvos",
+     "qtd": 1
+    }
+   },
+   "partes": {
+    "execucao": 0,
+    "alcance": -1,
+    "duracao": 0,
+    "alvo": 0,
+    "resistencia": 1,
+    "dano": 11.0
+   },
+   "total": 11.0
+  },
+  {
    "slug": "disparo-gelido",
    "nome": "Disparo Gélido",
    "grupo": "Arcana",
@@ -1936,6 +1911,31 @@
    "total": 12.0
   },
   {
+   "slug": "seta-infalivel-de-talude",
+   "nome": "Seta Infalível de Talude",
+   "grupo": "Arcana",
+   "escola": "Evocação",
+   "eixos": {
+    "execucao": "padrao",
+    "alcance": "medio",
+    "duracao": "instantanea",
+    "resistencia": "nenhuma",
+    "alvo": {
+     "tipo": "alvos",
+     "qtd": "escolhidas"
+    }
+   },
+   "partes": {
+    "execucao": 0,
+    "alcance": 1,
+    "duracao": 0,
+    "alvo": 4,
+    "resistencia": 2,
+    "dano": 5.0
+   },
+   "total": 12.0
+  },
+  {
    "slug": "flecha-de-luz",
    "nome": "Flecha de Luz",
    "grupo": "Universal",
@@ -1956,10 +1956,10 @@
     "duracao": 0,
     "alvo": 0,
     "resistencia": 0,
-    "dano": 10.0,
+    "dano": 11.0,
     "condicao": 1.0
    },
-   "total": 12.0
+   "total": 13.0
   },
   {
    "slug": "nuvem-tempestuosa",

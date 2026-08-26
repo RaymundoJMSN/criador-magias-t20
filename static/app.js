@@ -53,7 +53,7 @@ const EXPLICA = {
   },
 };
 const TESTES = ["Fortitude", "Reflexos", "Vontade"];
-const TIPOS_DANO = ["fogo", "frio", "eletricidade", "ácido", "luz", "trevas", "essência", "corte", "impacto", "perfuração", "psíquico"];
+const TIPOS_DANO = ["fogo", "frio", "eletricidade", "ácido", "veneno", "corte", "impacto", "perfuração", "luz", "trevas", "psíquico", "essência"];
 const RESTRITOS = [
   [null, "qualquer criatura", "afeta tudo — o padrão"],
   ["humanoides", "só humanoides", "pessoas, orcs, goblins…"],
@@ -112,7 +112,8 @@ function richText({ html, placeholder, oninput, alto }) {
 function chipsTermos(m, ta, aoInserir) {
   const chaves = ["alvo", "alcance", "duracao",
     ...(m.efeitos.dano ? ["dano"] : []), ...(m.efeitos.cura ? ["cura"] : []),
-    ...(m.efeitos.bonus ? ["bonus"] : []), ...(m.efeitos.penalidade ? ["penalidade"] : []),
+    ...((Array.isArray(m.efeitos.bonus) ? m.efeitos.bonus.length : m.efeitos.bonus) ? ["bonus"] : []),
+    ...((Array.isArray(m.efeitos.penalidade) ? m.efeitos.penalidade.length : m.efeitos.penalidade) ? ["penalidade"] : []),
     ...(m.efeitos.condicoes?.length ? ["condicao"] : []),
     ...(ehOfensiva(m) && m.eixos.resistencia !== "nenhuma" ? ["teste"] : []),
     ...(m.efeitos.custom ? ["efeitoespecial"] : [])];
@@ -199,13 +200,13 @@ function passoEfeitos(box) {
   box.append(el("p", { className: "explica", textContent: "Marque tudo que a magia faz (pode combinar):" }));
   const ops = el("div", { className: "opcoes grandes" });
   for (const [chave, titulo, explica] of BLOCOS) {
-    const ligado = chave === "condicoes" ? !!magia.efeitos.condicoes : !!magia.efeitos[chave];
+    const v0 = magia.efeitos[chave];
+    const ligado = chave === "condicoes" ? !!magia.efeitos.condicoes : Array.isArray(v0) ? true : !!v0;
     ops.append(cardOpcao({
       marcado: ligado, titulo, explica,
       onclick: () => {
         if (ligado) delete magia.efeitos[chave];
-        else magia.efeitos[chave] = { dano: { n: 2, faces: 6, fixo: 0, tipo: "fogo" }, cura: { n: 2, faces: 8, fixo: 2 }, bonus: 2, penalidade: 2, condicoes: [], custom: { texto: "", pontos: 0 } }[chave];
-        if (chave === "bonus" && !ligado) magia.efeitos.bonusEm = magia.efeitos.bonusEm || "";
+        else magia.efeitos[chave] = { dano: { n: 2, faces: 6, fixo: 0, tipo: "fogo" }, cura: { n: 2, faces: 8, fixo: 2 }, bonus: [{ valor: 2, em: "", escopo: "especifico" }], penalidade: [{ valor: 2, em: "", escopo: "especifico" }], condicoes: [], custom: { texto: "", pontos: 0 } }[chave];
         renderPasso(); atualizar();
       },
     }));
@@ -230,9 +231,13 @@ function passoConfig(box) {
         seletor("quantos dados", ef.dano.n, [1, 2, 3, 4, 5, 6, 7, 8, 10, 12], (v) => (ef.dano.n = +v)),
         seletor("qual dado", ef.dano.faces, [4, 6, 8, 10, 12], (v) => (ef.dano.faces = +v)),
         seletor("+ fixo", ef.dano.fixo, [0, 1, 2, 3, 4, 5, 6, 8, 10], (v) => (ef.dano.fixo = +v)),
-        seletor("tipo", ef.dano.tipo, TIPOS_DANO, (v) => (ef.dano.tipo = v)),
+        seletor("tipo", ef.dano.tipo, TIPOS_DANO, (v) => { ef.dano.tipo = v; renderPasso(); }),
       ),
-      el("p", { className: "explica", textContent: `cada d${ef.dano.faces} custa ${custoDado(ef.dano.faces)} pts · cada +1 fixo custa ${TABELA.efeitos.dano_fixo_por_ponto} pt · referência oficial: 2d6 num alvo, 2d8+2 no toque` }),
+      el("p", { className: "explica", textContent: (() => {
+        const tn = (ef.dano.tipo || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+        const dt = TABELA.efeitos.custo_tipo_dano?.[tn] ?? 0;
+        return `cada d${ef.dano.faces} custa ${custoDado(ef.dano.faces)} pts · +1 fixo = ${TABELA.efeitos.dano_fixo_por_ponto} pt · tipo ${ef.dano.tipo}: ${dt > 0 ? "+" + dt : dt} pt · referência: 2d6 num alvo, 2d8+2 no toque`;
+      })() }),
     ));
   }
   if (ef.cura) {
@@ -247,20 +252,27 @@ function passoConfig(box) {
     ));
   }
   const painelNumerico = (chave, titulo, sinal) => {
+    // migra formato antigo (número único) pra lista
+    if (!Array.isArray(ef[chave])) ef[chave] = [{ valor: ef[chave] || 2, em: ef[chave + "Em"] || "", escopo: ef[chave + "Escopo"] || "especifico" }];
     const esc2 = TABELA.efeitos.bonus_escalonado;
     const escopos = [["especifico", "1 perícia / 1 uso específico (×1)"], ["combate", "Defesa OU ataques OU resistências (×1.5)"], ["amplo", "uma categoria inteira de testes (×2)"]];
-    box.append(el("div", { className: "sub-painel" },
-      el("h3", {}, titulo),
-      el("div", { className: "campo-linha" },
-        seletor("valor", ef[chave], [1, 2, 3, 4, 5], (v) => (ef[chave] = +v)),
+    const painel = el("div", { className: "sub-painel" }, el("h3", {}, titulo));
+    ef[chave].forEach((item, i) => {
+      painel.append(el("div", { className: "campo-linha" },
+        seletor("valor", item.valor, [1, 2, 3, 4, 5], (v) => (item.valor = +v)),
         el("label", { className: "campo" }, "abrangência",
-          el("select", { onchange: (e) => { ef[chave + "Escopo"] = e.target.value; atualizar(); } },
-            ...escopos.map(([v, r]) => el("option", { value: v, textContent: r, selected: (ef[chave + "Escopo"] || "especifico") === v })))),
+          el("select", { onchange: (e) => { item.escopo = e.target.value; atualizar(); } },
+            ...escopos.map(([v, r]) => el("option", { value: v, textContent: r, selected: (item.escopo || "especifico") === v })))),
         el("label", { className: "campo" }, "em quê, exatamente?",
-          el("input", { maxLength: 60, value: ef[chave + "Em"] || "", placeholder: sinal === "+" ? "Defesa, Atletismo…" : "Defesa, ataques do alvo…", oninput: (e) => { ef[chave + "Em"] = e.target.value; atualizar(false); } })),
-      ),
-      el("p", { className: "explica", textContent: `custo por valor: ${esc2.map((c, i) => `${sinal}${i + 1}=${c}pt`).join("  ")} × abrangência` }),
-    ));
+          el("input", { maxLength: 60, value: item.em || "", placeholder: sinal === "+" ? "Defesa, Atletismo…" : "Defesa, ataques do alvo…", oninput: (e) => { item.em = e.target.value; atualizar(false); } })),
+        ef[chave].length > 1 ? el("button", { className: "bt mini", textContent: "×", onclick: () => { ef[chave].splice(i, 1); renderPasso(); atualizar(); } }) : null,
+      ));
+    });
+    painel.append(
+      el("button", { className: "bt mini", textContent: sinal === "+" ? "+ outro bônus" : "+ outra penalidade", onclick: () => { ef[chave].push({ valor: 2, em: "", escopo: "especifico" }); renderPasso(); atualizar(); } }),
+      el("p", { className: "explica", textContent: `custo por valor: ${esc2.map((c, i) => `${sinal}${i + 1}=${c}pt`).join("  ")} × abrangência · o mais caro paga cheio, extras pagam metade` }),
+    );
+    box.append(painel);
   };
   if (ef.bonus != null) painelNumerico("bonus", "🛡 Bônus", "+");
   if (ef.penalidade != null) painelNumerico("penalidade", "➖ Penalidade (o alvo resiste)", "−");

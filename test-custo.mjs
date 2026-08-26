@@ -167,4 +167,21 @@ r = calcular({
 }, tabela);
 assert.ok(!r.valido && r.precisaAval, `11/10 devia pedir aval: ${JSON.stringify({t:r.total,a:r.precisaAval})}`);
 
+// v9: multi-bônus — +2 em 3 perícias = 5 + 2.5 + 2.5
+r = calcular({
+  circulo: 1,
+  eixos: { execucao: "padrao", alcance: "pessoal", duracao: "cena", alvo: { tipo: "pessoal" } },
+  efeitos: { bonus: [{ valor: 2, em: "Atletismo" }, { valor: 2, em: "Furtividade" }, { valor: 2, em: "Percepção" }] },
+}, tabela);
+assert.equal(r.partes.bonus, 10, `multi-bônus: ${r.partes.bonus}`);
+
+// v9: tipo de dano — psíquico +2, impacto -1, fogo 0
+const baseDano = (tipo) => calcular({
+  circulo: 1,
+  eixos: { execucao: "padrao", alcance: "curto", duracao: "instantanea", resistencia: "parcial", alvo: { tipo: "alvos", qtd: 1 } },
+  efeitos: { dano: { n: 2, faces: 6, fixo: 0, tipo } },
+}, tabela).partes.dano;
+assert.equal(baseDano("psíquico") - baseDano("fogo"), 2, "psíquico devia custar +2");
+assert.equal(baseDano("impacto") - baseDano("fogo"), -1, "impacto devia custar -1");
+
 console.log("custo.mjs OK");

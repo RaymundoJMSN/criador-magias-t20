@@ -22,8 +22,9 @@ function tierCondicao(nome, tiers) {
   return 2; // condição desconhecida: tier médio
 }
 
+const temValor = (x) => Array.isArray(x) ? x.length > 0 : !!x;
 export const ehOfensiva = (m) => !!m.efeitos?.dano || !!m.efeitos?.condicoes?.length ||
-  !!m.efeitos?.penalidade || !!m.efeitos?.resistenciaForcada;
+  temValor(m.efeitos?.penalidade) || !!m.efeitos?.resistenciaForcada;
 
 // magia: ver README/spec. Retorna {total, partes, devolvido, orcamento, avisos, valido}.
 export function calcular(magia, tabela) {
@@ -69,7 +70,7 @@ export function calcular(magia, tabela) {
       avisos.push(`Dano com duração ${eixos.duracao} repete a cada rodada — custo do dano ×${ef.dano_repetivel_mult ?? 1.5}.`);
     }
     // blast puro: dano é o ÚNICO efeito e instantâneo -> o círculo dá dados de bônus (Bola de Fogo)
-    const puro = !efeitos.cura && !efeitos.bonus && !efeitos.penalidade && !condicoes.length &&
+    const puro = !efeitos.cura && !temValor(efeitos.bonus) && !temValor(efeitos.penalidade) && !condicoes.length &&
       !(efeitos.custom && efeitos.custom.texto) && eixos.duracao === "instantanea";
     const nBonus = Number(ef.dano_puro_bonus_dados?.[String(magia.circulo || 1)] || 0);
     if (puro && nBonus > 0) {
@@ -77,6 +78,13 @@ export function calcular(magia, tabela) {
       const desconto = Math.min(Math.min(efeitos.dano.n, nBonus) * precoDado, partes.dano / 2);
       partes.dano -= desconto;
       avisos.push(`Blast puro: o ${magia.circulo || 1}º círculo desconta ${nBonus} dado(s) do dano (−${desconto} pts).`);
+    }
+    // tipo de dano: mundano é mais resistido (-1), luz/trevas +1, psíquico/essência quase nada resiste (+2)
+    const tipoNorm = (efeitos.dano.tipo || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
+    const deltaTipo = ef.custo_tipo_dano?.[tipoNorm] ?? 0;
+    if (deltaTipo) {
+      partes.dano += deltaTipo;
+      avisos.push(`Dano de ${efeitos.dano.tipo}: ${deltaTipo > 0 ? "+" : ""}${deltaTipo} pt (raridade de resistência).`);
     }
   }
   if (efeitos.cura) partes.cura = custoDados(efeitos.cura, ef.cura_por_dado, ef.cura_fixa_por_ponto);
@@ -90,13 +98,21 @@ export function calcular(magia, tabela) {
     const mult = ef.bonus_escopo_mult?.[escopo || "especifico"] ?? 1;
     return esc[v - 1] * mult;
   };
-  if (efeitos.bonus) {
-    partes.bonus = custoBonus(efeitos.bonus, efeitos.bonusEscopo);
-    if (Math.abs(efeitos.bonus) > ef.bonus_escalonado.length) avisos.push(`Bônus acima de +${ef.bonus_escalonado.length}: precifique como efeito custom.`);
+  // aceita o formato antigo (número) e o novo (lista de {valor, em, escopo})
+  const comoLista = (x, emLegado, escopoLegado) =>
+    Array.isArray(x) ? x : x ? [{ valor: x, em: emLegado, escopo: escopoLegado }] : [];
+  const custoListaBonus = (lista) => {
+    const custos = lista.filter((b) => b.valor).map((b) => custoBonus(b.valor, b.escopo)).sort((a, b) => b - a);
+    // o mais caro paga cheio; extras pagam metade (mesma regra das condições)
+    return custos.reduce((soma, c, i) => soma + (i === 0 ? c : c / 2), 0);
+  };
+  const bonusLista = comoLista(efeitos.bonus, efeitos.bonusEm, efeitos.bonusEscopo);
+  if (bonusLista.length) {
+    partes.bonus = custoListaBonus(bonusLista);
+    if (bonusLista.some((b) => Math.abs(b.valor) > ef.bonus_escalonado.length)) avisos.push(`Bônus acima de +${ef.bonus_escalonado.length}: precifique como efeito custom.`);
   }
-  if (efeitos.penalidade) {
-    partes.penalidade = custoBonus(efeitos.penalidade, efeitos.penalidadeEscopo);
-  }
+  const penLista = comoLista(efeitos.penalidade, efeitos.penalidadeEm, efeitos.penalidadeEscopo);
+  if (penLista.length) partes.penalidade = custoListaBonus(penLista);
 
   if (condicoes.length) {
     const tiers = condicoes.map((c) => tierCondicao(c, ef.condicoes_tier)).sort((a, b) => b - a);
@@ -125,7 +141,7 @@ export function calcular(magia, tabela) {
 
   // permanente numérico não existe no 1º círculo
   if (travas.permanente_so_custom && eixos.duracao === "permanente" &&
-      (efeitos.dano || efeitos.cura || efeitos.bonus || efeitos.penalidade || condicoes.length)) {
+      (efeitos.dano || efeitos.cura || temValor(efeitos.bonus) || temValor(efeitos.penalidade) || condicoes.length)) {
     bloqueada = true;
     avisos.push(`Duração permanente no ${magia.circulo || 1}º círculo só para efeito especial (com aprovação do mestre) — nunca para dano/cura/bônus/condição.`);
   }

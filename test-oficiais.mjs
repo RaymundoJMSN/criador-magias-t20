@@ -26,7 +26,7 @@ const CASOS = [
   ["1º", "Explosão de Chamas", "valida", M(1,
     { execucao: "padrao", alcance: "pessoal", duracao: "instantanea", resistencia: "reduz-metade", teste: "Reflexos", alvo: { tipo: "area", tamanho: "p", forma: "cone", metros: 6 } },
     { dano: { n: 2, faces: 6, fixo: 0, tipo: "fogo" } })],
-  ["1º", "Adaga Mental", "valida", M(1,
+  ["1º", "Adaga Mental", "aval", M(1,  // psíquico paga +2 (v9)
     { execucao: "padrao", alcance: "curto", duracao: "instantanea", resistencia: "parcial", teste: "Vontade", alvo: alvo1 },
     { dano: { n: 2, faces: 6, fixo: 0, tipo: "psíquico" }, condicoes: ["atordoado"] })],
   ["1º", "Amedrontar (só humanoide/animal)", "valida", M(1,
@@ -48,7 +48,7 @@ const CASOS = [
     { dano: { n: 5, faces: 6, fixo: 0, tipo: "veneno" } })],
   ["2º", "Toque Vampírico (rouba vida = custom)", "aval", M(2,
     { execucao: "padrao", alcance: "toque", duracao: "instantanea", resistencia: "reduz-metade", teste: "Fortitude", alvo: alvo1 },
-    { dano: { n: 6, faces: 6, fixo: 0, tipo: "trevas" }, custom: { texto: "você recupera PV iguais à metade do dano causado", pontos: 3 } })],
+    { dano: { n: 6, faces: 6, fixo: 0, tipo: "trevas" }, custom: { texto: "você recupera PV iguais à metade do dano causado", pontos: 2 } })],
   ["2º", "Sussurros Insanos", "folgada", M(2,
     { execucao: "padrao", alcance: "curto", duracao: "cena", resistencia: "anula", teste: "Vontade", alvo: alvo1 },
     { condicoes: ["confuso"] })],
@@ -74,7 +74,7 @@ const CASOS = [
     { dano: { n: 6, faces: 8, fixo: 0, tipo: "frio" }, condicoes: ["paralisado", "enredado"] })],
 
   // ---- 4º círculo (34 pts) ----
-  ["4º", "Raio de Plasma", "valida", M(4,
+  ["4º", "Raio de Plasma", "aval", M(4,  // essência paga +2 (v9)
     { execucao: "padrao", alcance: "medio", duracao: "instantanea", resistencia: "reduz-metade", teste: "Reflexos", alvo: { tipo: "area", tamanho: "m", forma: "linha", metros: 30 } },
     { dano: { n: 10, faces: 8, fixo: 0, tipo: "essência" } })],
   ["4º", "Cólera de Azgher", "aval", M(4,

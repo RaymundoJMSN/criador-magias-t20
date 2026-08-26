@@ -75,6 +75,7 @@ def reconstruir(m, t=TABELA):
             nd, resto = m["dano"]["dados"].split("d")
             preco = ef["dano_por_dado"][resto.partition("+")[0]]
             partes["dano"] -= min(min(int(nd), n_bonus) * preco, partes["dano"] / 2)
+        partes["dano"] += ef.get("custo_tipo_dano", {}).get(m["dano"].get("tipo") or "", 0)
     if "cura" in m:
         c = custo_dados(m["cura"]["dados"], ef["cura_por_dado"], ef["cura_fixa_por_ponto"])
         if "dano" in partes:  # dano OU cura (Infligir Ferimentos): modos alternativos

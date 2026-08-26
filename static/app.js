@@ -26,7 +26,7 @@ const EXPLICA = {
     livre: "quase de graça no turno",
     reacao: "conjura fora do seu turno, reagindo",
     completa: "consome o turno inteiro",
-    longa: "1+ rodada conjurando (ritual)",
+    longa: "2+ rodadas conjurando — execução de 1 rodada não existe: use completa",
   },
   alcance: {
     pessoal: "só em você / a partir de você",
@@ -39,7 +39,7 @@ const EXPLICA = {
   duracao: {
     instantanea: "acontece e acabou (dano, cura...)",
     "1rodada": "dura só 1 rodada",
-    sustentada: "dura enquanto você gastar ação pra manter",
+    sustentada: "você gasta ação pra manter e pode ser interrompido — devolve ponto",
     cena: "dura a cena inteira — padrão de buffs",
     "1dia": "dura um dia",
     permanente: "para sempre (caro!)",

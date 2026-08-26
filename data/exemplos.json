@@ -149,25 +149,6 @@
    "preco_efeito": 5
   },
   {
-   "slug": "chuva",
-   "nome": "Chuva",
-   "grupo": "Divina",
-   "escola": "Evocação",
-   "eixos": {
-    "execucao": "movimento",
-    "alcance": "curto",
-    "duracao": "sustentada",
-    "resistencia": "nenhuma",
-    "alvo": {
-     "tipo": "area",
-     "forma": "cilindro",
-     "tamanho_m": 9
-    }
-   },
-   "custo_eixos": 5,
-   "preco_efeito": 5
-  },
-  {
    "slug": "perdicao",
    "nome": "Perdição",
    "grupo": "Divina",
@@ -198,6 +179,25 @@
     "alvo": {
      "tipo": "alvos",
      "qtd": 1
+    }
+   },
+   "custo_eixos": 4,
+   "preco_efeito": 6
+  },
+  {
+   "slug": "chuva",
+   "nome": "Chuva",
+   "grupo": "Divina",
+   "escola": "Evocação",
+   "eixos": {
+    "execucao": "movimento",
+    "alcance": "curto",
+    "duracao": "sustentada",
+    "resistencia": "nenhuma",
+    "alvo": {
+     "tipo": "area",
+     "forma": "cilindro",
+     "tamanho_m": 9
     }
    },
    "custo_eixos": 4,
@@ -1237,23 +1237,6 @@
    "preco_efeito": 12
   },
   {
-   "slug": "orbe-do-oceano",
-   "nome": "Orbe do Oceano",
-   "grupo": "Divina",
-   "escola": "Abjuração",
-   "eixos": {
-    "execucao": "padrao",
-    "alcance": "pessoal",
-    "duracao": "sustentada",
-    "resistencia": "nenhuma",
-    "alvo": {
-     "tipo": "pessoal"
-    }
-   },
-   "custo_eixos": -3,
-   "preco_efeito": 13
-  },
-  {
    "slug": "vitalidade-fantasma",
    "nome": "Vitalidade Fantasma",
    "grupo": "Arcana",
@@ -1269,6 +1252,23 @@
    },
    "custo_eixos": -3,
    "preco_efeito": 13
+  },
+  {
+   "slug": "orbe-do-oceano",
+   "nome": "Orbe do Oceano",
+   "grupo": "Divina",
+   "escola": "Abjuração",
+   "eixos": {
+    "execucao": "padrao",
+    "alcance": "pessoal",
+    "duracao": "sustentada",
+    "resistencia": "nenhuma",
+    "alvo": {
+     "tipo": "pessoal"
+    }
+   },
+   "custo_eixos": -4,
+   "preco_efeito": 14
   }
  ],
  "numericas": [
@@ -1403,6 +1403,31 @@
    "total": 7
   },
   {
+   "slug": "espirito-balistico",
+   "nome": "Espírito Balístico",
+   "grupo": "Arcana",
+   "escola": "Convocação",
+   "eixos": {
+    "execucao": "padrao",
+    "alcance": "curto",
+    "duracao": "sustentada",
+    "resistencia": "nenhuma",
+    "alvo": {
+     "tipo": "alvos",
+     "qtd": 1
+    }
+   },
+   "partes": {
+    "execucao": 0,
+    "alcance": 0,
+    "duracao": -1,
+    "alvo": 0,
+    "resistencia": 2,
+    "dano": 6.0
+   },
+   "total": 7.0
+  },
+  {
    "slug": "explosao-de-chamas",
    "nome": "Explosão de Chamas",
    "grupo": "Arcana",
@@ -1479,12 +1504,12 @@
    "total": 7.0
   },
   {
-   "slug": "espirito-balistico",
-   "nome": "Espírito Balístico",
+   "slug": "conjurar-monstro",
+   "nome": "Conjurar Monstro",
    "grupo": "Arcana",
    "escola": "Convocação",
    "eixos": {
-    "execucao": "padrao",
+    "execucao": "completa",
     "alcance": "curto",
     "duracao": "sustentada",
     "resistencia": "nenhuma",
@@ -1494,12 +1519,12 @@
     }
    },
    "partes": {
-    "execucao": 0,
+    "execucao": -2,
     "alcance": 0,
-    "duracao": 0,
+    "duracao": -1,
     "alvo": 0,
     "resistencia": 2,
-    "dano": 6.0
+    "dano": 9.0
    },
    "total": 8.0
   },
@@ -1528,6 +1553,31 @@
     "condicao": 5
    },
    "total": 8
+  },
+  {
+   "slug": "acoite-flamejante",
+   "nome": "Açoite Flamejante",
+   "grupo": "Arcana",
+   "escola": "Convocação",
+   "eixos": {
+    "execucao": "padrao",
+    "alcance": "pessoal",
+    "duracao": "sustentada",
+    "resistencia": "parcial",
+    "alvo": {
+     "tipo": "outro"
+    }
+   },
+   "partes": {
+    "execucao": 0,
+    "alcance": -2,
+    "duracao": -1,
+    "alvo": 0,
+    "resistencia": 0,
+    "dano": 9.0,
+    "condicao": 2.5
+   },
+   "total": 8.5
   },
   {
    "slug": "dardo-gelido",
@@ -1631,31 +1681,6 @@
    "total": 9.0
   },
   {
-   "slug": "conjurar-monstro",
-   "nome": "Conjurar Monstro",
-   "grupo": "Arcana",
-   "escola": "Convocação",
-   "eixos": {
-    "execucao": "completa",
-    "alcance": "curto",
-    "duracao": "sustentada",
-    "resistencia": "nenhuma",
-    "alvo": {
-     "tipo": "alvos",
-     "qtd": 1
-    }
-   },
-   "partes": {
-    "execucao": -2,
-    "alcance": 0,
-    "duracao": 0,
-    "alvo": 0,
-    "resistencia": 2,
-    "dano": 9.0
-   },
-   "total": 9.0
-  },
-  {
    "slug": "curar-ferimentos",
    "nome": "Curar Ferimentos",
    "grupo": "Divina",
@@ -1704,31 +1729,6 @@
     "dano": 10.0
    },
    "total": 9.0
-  },
-  {
-   "slug": "acoite-flamejante",
-   "nome": "Açoite Flamejante",
-   "grupo": "Arcana",
-   "escola": "Convocação",
-   "eixos": {
-    "execucao": "padrao",
-    "alcance": "pessoal",
-    "duracao": "sustentada",
-    "resistencia": "parcial",
-    "alvo": {
-     "tipo": "outro"
-    }
-   },
-   "partes": {
-    "execucao": 0,
-    "alcance": -2,
-    "duracao": 0,
-    "alvo": 0,
-    "resistencia": 0,
-    "dano": 9.0,
-    "condicao": 2.5
-   },
-   "total": 9.5
   },
   {
    "slug": "adaga-mental",
@@ -1962,6 +1962,32 @@
    "total": 12.0
   },
   {
+   "slug": "nuvem-tempestuosa",
+   "nome": "Nuvem Tempestuosa",
+   "grupo": "Arcana",
+   "escola": "Convocação",
+   "eixos": {
+    "execucao": "padrao",
+    "alcance": "curto",
+    "duracao": "sustentada",
+    "resistencia": "reduz-metade",
+    "alvo": {
+     "tipo": "area",
+     "forma": "nuvem",
+     "tamanho_m": 3
+    }
+   },
+   "partes": {
+    "execucao": 0,
+    "alcance": 0,
+    "duracao": -1,
+    "alvo": 2,
+    "resistencia": 1,
+    "dano": 12.0
+   },
+   "total": 14.0
+  },
+  {
    "slug": "raio-do-enfraquecimento",
    "nome": "Raio do Enfraquecimento",
    "grupo": "Arcana",
@@ -1985,32 +2011,6 @@
     "condicao": 13.0
    },
    "total": 14.0
-  },
-  {
-   "slug": "nuvem-tempestuosa",
-   "nome": "Nuvem Tempestuosa",
-   "grupo": "Arcana",
-   "escola": "Convocação",
-   "eixos": {
-    "execucao": "padrao",
-    "alcance": "curto",
-    "duracao": "sustentada",
-    "resistencia": "reduz-metade",
-    "alvo": {
-     "tipo": "area",
-     "forma": "nuvem",
-     "tamanho_m": 3
-    }
-   },
-   "partes": {
-    "execucao": 0,
-    "alcance": 0,
-    "duracao": 0,
-    "alvo": 2,
-    "resistencia": 1,
-    "dano": 12.0
-   },
-   "total": 15.0
   },
   {
    "slug": "sono",

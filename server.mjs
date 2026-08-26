@@ -18,8 +18,18 @@ const MIME = { ".html": "text/html; charset=utf-8", ".js": "text/javascript", ".
 const MAX_MAGIAS = 200, MAX_BODY = 512 * 1024, MAX_NOME = 40;
 
 function carregar() {
-  try { return JSON.parse(readFileSync(ARQ, "utf-8")); }
-  catch { return { usuarios: {}, publicadas: {} }; }
+  let d;
+  try { d = JSON.parse(readFileSync(ARQ, "utf-8")); }
+  catch { d = { usuarios: {}, publicadas: {} }; }
+  // migração: "Amanda" e "amanda" eram contas separadas -> mesclar por nome normalizado
+  const u = {};
+  for (const [k, magias] of Object.entries(d.usuarios || {})) {
+    const nk = (k || "").trim().normalize("NFC").toLowerCase();
+    u[nk] = u[nk] || [];
+    for (const m of magias) if (!m.id || !u[nk].some((x) => x.id === m.id)) u[nk].push(m);
+  }
+  d.usuarios = u;
+  return d;
 }
 
 const CHECK = process.argv.includes("--check");
@@ -43,6 +53,10 @@ function salvar() {
 function nomeOk(n) {
   return typeof n === "string" && n.length >= 1 && n.length <= MAX_NOME && !/[\\/<>"]/.test(n);
 }
+
+// identidade: uma conta só, independente de maiúsculas ("Amanda" = "amanda" = "AMANDA")
+const normNome = (n) => (n || "").trim().normalize("NFC").toLowerCase();
+const mesmoDono = (a, b) => normNome(a) === normNome(b);
 
 function validarMagia(m) {
   if (typeof m !== "object" || !m) return "magia inválida";
@@ -83,7 +97,7 @@ async function tratar(req, res) {
   if (p === "/api/state" && req.method === "GET") {
     const user = url.searchParams.get("user") || "";
     return json(res, 200, {
-      minhas: estado.usuarios[user] || [],
+      minhas: estado.usuarios[normNome(user)] || [],
       publicadas: Object.entries(estado.publicadas).map(([id, m]) => ({ ...m, id })),
     });
   }
@@ -91,6 +105,7 @@ async function tratar(req, res) {
   if (p.startsWith("/api/user/") && req.method === "PUT") {
     const nome = decodeURIComponent(p.slice("/api/user/".length));
     if (!nomeOk(nome)) return json(res, 400, { erro: "nome inválido" });
+    const chave = normNome(nome);
     let b;
     try { b = await corpo(req); } catch { return json(res, 400, { erro: "corpo inválido" }); }
     const magias = Array.isArray(b.magias) ? b.magias.slice(0, MAX_MAGIAS) : null;
@@ -99,16 +114,16 @@ async function tratar(req, res) {
       const e = validarMagia(m);
       if (e) return json(res, 400, { erro: `${m?.nome || "?"}: ${e}` });
     }
-    estado.usuarios[nome] = magias;
+    estado.usuarios[chave] = magias;
     // magia publicada É a mesma magia: editar a sua atualiza a publicada, apagar despublica
     const idsAgora = new Set(magias.map((m) => m.id).filter(Boolean));
     for (const [id, pub] of Object.entries(estado.publicadas)) {
-      if (pub.autor !== nome) continue;
+      if (!mesmoDono(pub.autor, nome)) continue;
       if (!idsAgora.has(id)) delete estado.publicadas[id];
     }
     for (const m of magias) {
       const pub = m.id && estado.publicadas[m.id];
-      if (pub && pub.autor === nome) estado.publicadas[m.id] = { ...m, autor: nome, publicadaEm: pub.publicadaEm };
+      if (pub && mesmoDono(pub.autor, nome)) estado.publicadas[m.id] = { ...m, autor: pub.autor, publicadaEm: pub.publicadaEm };
     }
     salvar();
     return json(res, 200, { ok: true, n: magias.length });
@@ -125,7 +140,7 @@ async function tratar(req, res) {
     if (magia.pontos.gasto > limiteAval) return json(res, 400, { erro: "estourou além da margem do mestre — só rascunho" });
     const id = typeof magia.id === "string" && /^[a-f0-9]{6,16}$/.test(magia.id) ? magia.id : randomBytes(4).toString("hex");
     const jaTem = estado.publicadas[id];
-    if (jaTem && jaTem.autor !== autor) return json(res, 403, { erro: "essa magia é de outra pessoa" });
+    if (jaTem && !mesmoDono(jaTem.autor, autor)) return json(res, 403, { erro: "essa magia é de outra pessoa" });
     // mesmo id = mesma magia: republicar atualiza, nunca duplica
     estado.publicadas[id] = { ...magia, id, autor, publicadaEm: jaTem?.publicadaEm || new Date().toISOString() };
     salvar();
@@ -137,7 +152,7 @@ async function tratar(req, res) {
     try { b = await corpo(req); } catch { return json(res, 400, { erro: "corpo inválido" }); }
     const m = estado.publicadas[b.id];
     if (!m) return json(res, 404, { erro: "não existe" });
-    if (m.autor !== b.autor) return json(res, 403, { erro: "só o autor despublica" });
+    if (!mesmoDono(m.autor, b.autor)) return json(res, 403, { erro: "só o autor despublica" });
     delete estado.publicadas[b.id];
     salvar();
     return json(res, 200, { ok: true });
@@ -315,6 +330,17 @@ if (CHECK) {
       if (pub2.id !== pub.id) return falha("republicar mudou o id");
       const roubo = await fetch(`${base}/api/publicar`, { method: "POST", body: JSON.stringify({ autor: "ladrao", magia: { ...magia, id: pub.id } }) });
       if (roubo.status !== 403) return falha("deixou outro autor sobrescrever");
+      // identidade case-insensitive: RAY é o mesmo dono que ray
+      const mesmoCase = await fetch(`${base}/api/publicar`, { method: "POST", body: JSON.stringify({ autor: "RAY", magia: { ...magia, id: pub.id } }) });
+      if (mesmoCase.status !== 200) return falha("RAY devia ser o mesmo dono que ray");
+      const stCase = await (await fetch(`${base}/api/state?user=RaY`)).json();
+      if (!stCase.minhas.length) return falha("state RaY devia ver as magias de ray");
+      const desp = await fetch(`${base}/api/despublicar`, { method: "POST", body: JSON.stringify({ autor: "Ray", id: pub.id }) });
+      if (desp.status !== 200) return falha("Ray devia despublicar a de ray");
+      const despAlheio = await fetch(`${base}/api/publicar`, { method: "POST", body: JSON.stringify({ autor: "ray", magia: { ...magia, id: pub.id } }) });
+      if (despAlheio.status !== 200) return falha("republicar após despublicar falhou");
+      const roubo2 = await fetch(`${base}/api/despublicar`, { method: "POST", body: JSON.stringify({ autor: "Ladrao", id: pub.id }) });
+      if (roubo2.status !== 403) return falha("Ladrao não podia despublicar a de ray");
       console.log("server.mjs --check OK");
       server.close();
     } catch (e) { falha(e.message); }

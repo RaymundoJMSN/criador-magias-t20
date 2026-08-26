@@ -5,6 +5,7 @@ import { ROTULOS, RESTRITO_SINGULAR, FORMAS, esc, sanitizarHtml, htmlParaTexto,
          PLACEHOLDERS, substituir, cartaHtml, cartaOficialHtml, textoPenalidade } from "/carta.mjs";
 
 const $ = (s) => document.querySelector(s);
+const normNome = (n) => (n || "").trim().normalize("NFC").toLowerCase();
 const el = (tag, props = {}, ...filhos) => {
   const n = Object.assign(document.createElement(tag), props);
   n.append(...filhos.filter((f) => f != null));
@@ -60,6 +61,8 @@ const RESTRITOS = [
   ["objetos", "só objetos", "itens, portas, armas…"],
 ];
 const METROS_G = [9, 12, 15, 18, 30];
+
+function chaveRascunho() { return "cm_rascunho:" + (normNome(user) || "anon"); }
 
 function idNovo() { return [...crypto.getRandomValues(new Uint8Array(4))].map((b) => b.toString(16).padStart(2, "0")).join(""); }
 
@@ -755,7 +758,7 @@ function renderPasso() {
   $("#bt-avancar").hidden = passoAtual === vis.length - 1;
   $("#lateral").hidden = p.id === "revisao"; // a revisão já mostra a carta grande
   renderProgresso();
-  localStorage.setItem("cm_rascunho", JSON.stringify(magia));
+  localStorage.setItem(chaveRascunho(), JSON.stringify(magia));
 }
 
 function atualizar(rerender = true) {
@@ -771,7 +774,7 @@ function atualizar(rerender = true) {
   $("#partes").replaceChildren(...Object.entries(r.partes).filter(([, v]) => v !== 0)
     .map(([k, v]) => el("li", { textContent: `${k}: ${v > 0 ? "+" + v : v}` })));
   $("#carta").innerHTML = cartaHtml(magia, r);
-  localStorage.setItem("cm_rascunho", JSON.stringify(magia));
+  localStorage.setItem(chaveRascunho(), JSON.stringify(magia));
   if (rerender) renderProgresso();
   return r;
 }
@@ -786,6 +789,11 @@ function aviso(t, erro) {
 }
 
 function entrou() {
+  const rasc = localStorage.getItem(chaveRascunho());
+  if (rasc) { try { magia = { ...novaMagia(), ...JSON.parse(rasc) }; } catch {} }
+  else magia = novaMagia();
+  passoAtual = 0;
+  renderPasso(); atualizar();
   $("#nome-user").hidden = $("#bt-entrar").hidden = true;
   $("#quem").hidden = false;
   $("#quem-nome").textContent = user;
@@ -796,10 +804,15 @@ async function sincronizar() {
   try {
     const st = await (await fetch(`/api/state?user=${encodeURIComponent(user)}`)).json();
     minhas = st.minhas;
+    const alheia = (st.publicadas || []).find((p2) => p2.id === magia.id && normNome(p2.autor) !== normNome(user));
+    if (alheia && !minhas.some((x) => x.id === magia.id)) {
+      magia.id = idNovo(); // rascunho herdado de outra conta neste navegador: vira uma cópia sua
+      aviso(`"${magia.nome || "essa magia"}" é de ${alheia.autor} — sua versão virou uma cópia separada`);
+    }
     let ganhouId = false;
     for (const m of minhas) if (!m.id) {
       // magia antiga sem id: se existe publicada homônima minha, é a MESMA magia
-      const pub = (st.publicadas || []).find((p2) => p2.autor === user && p2.nome === m.nome);
+      const pub = (st.publicadas || []).find((p2) => normNome(p2.autor) === normNome(user) && p2.nome === m.nome);
       m.id = pub?.id || idNovo();
       ganhouId = true;
     }
@@ -820,7 +833,7 @@ async function salvarServidor() {
 }
 
 const linkDaMagia = () => `${location.origin}/m/${magia.id}`;
-const estaPublicada = () => (window.__publicadas || []).some((p) => p.id === magia.id);
+const estaPublicada = () => (window.__publicadas || []).some((p) => p.id === magia.id && normNome(p.autor) === normNome(user));
 
 async function publicar() {
   if (!user) return aviso("entre com seu nome primeiro", true);
@@ -861,7 +874,7 @@ function abrirAba(aba) {
       el("h3", { textContent: "✦ criar nova magia" }),
       el("div", { className: "meta", textContent: "começa do zero, passo a passo" })));
     if (!minhas.length) return g.append(el("div", { className: "vazio", textContent: user ? "nenhuma magia salva ainda" : "entre com seu nome pra ver suas magias" }));
-    const pubIds = new Set((window.__publicadas || []).map((p2) => p2.id));
+    const pubIds = new Set((window.__publicadas || []).filter((p2) => normNome(p2.autor) === normNome(user)).map((p2) => p2.id));
     for (const m of minhas) {
       const r = calcular(m, TABELA);
       add({ onclick: () => { magia = m; passoAtual = passosVisiveis().length - 1; renderPasso(); atualizar(); scrollTo({ top: 0, behavior: "smooth" }); } },
@@ -928,7 +941,7 @@ async function boot() {
     ["/data/tabela-custos.json", "/data/tarifas-pm.json", "/data/exemplos.json"].map((u) => fetch(u).then((r) => r.json()))
   );
 
-  const rascunho = localStorage.getItem("cm_rascunho");
+  const rascunho = localStorage.getItem(chaveRascunho());
   if (rascunho) try { magia = { ...novaMagia(), ...JSON.parse(rascunho) }; } catch {}
   if (!magia.id) magia.id = idNovo();
 

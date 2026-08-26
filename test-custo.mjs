@@ -184,4 +184,20 @@ const baseDano = (tipo) => calcular({
 assert.equal(baseDano("psíquico") - baseDano("fogo"), 2, "psíquico devia custar +2");
 assert.equal(baseDano("impacto") - baseDano("fogo"), -1, "impacto devia custar -1");
 
+// v10: coerência de escola — Adivinhação com dano avisa (mas não trava)
+r = calcular({
+  circulo: 1, escola: "Adivinhação",
+  eixos: { execucao: "padrao", alcance: "curto", duracao: "instantanea", resistencia: "parcial", alvo: { tipo: "alvos", qtd: 1 } },
+  efeitos: { dano: { n: 2, faces: 6, fixo: 0, tipo: "fogo" } },
+}, tabela);
+assert.ok(r.avisos.some((a) => a.includes("Adivinhação") && a.includes("dano")), "devia avisar dano em Adivinhação");
+assert.ok(!r.bloqueada, "escola nunca trava");
+// Necromancia com fogo avisa do tipo; com trevas não
+const nec = (tipo) => calcular({
+  circulo: 1, escola: "Necromancia",
+  eixos: { execucao: "padrao", alcance: "curto", duracao: "instantanea", resistencia: "parcial", alvo: { tipo: "alvos", qtd: 1 } },
+  efeitos: { dano: { n: 2, faces: 6, fixo: 0, tipo } },
+}, tabela).avisos.some((a) => a.includes("foge do perfil"));
+assert.ok(nec("fogo") && !nec("trevas"), "perfil de tipo da Necromancia");
+
 console.log("custo.mjs OK");

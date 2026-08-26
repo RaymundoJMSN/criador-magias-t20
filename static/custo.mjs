@@ -175,6 +175,27 @@ export function calcular(magia, tabela) {
     }
   }
 
+  // coerência de escola (minerada das oficiais): avisa, nunca trava — escola é sabor
+  const escola = t.escolas?.[magia.escola];
+  if (escola) {
+    const strip = (x) => (x || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
+    if (efeitos.dano) {
+      if (escola.dano === "nao") {
+        avisos.push(`Nenhuma das ${escola.n} oficiais de ${magia.escola} causa dano — o perfil da escola é ${escola.perfil}. Considere Evocação, ou combine com o mestre.`);
+      } else if (escola.tiposDano?.length && !escola.tiposDano.some((td) => strip(td) === strip(efeitos.dano.tipo))) {
+        avisos.push(`${magia.escola} oficial causa dano de ${escola.tiposDano.join("/")} — ${efeitos.dano.tipo} foge do perfil da escola.`);
+      } else if (escola.dano === "raro") {
+        avisos.push(`Dano em ${magia.escola} é raríssimo nas oficiais (${escola.perfil}).`);
+      }
+    }
+    if (efeitos.cura && escola.cura === "nao") {
+      avisos.push(`Nenhuma oficial de ${magia.escola} cura — cura vem de Evocação (luz) ou Necromancia (drenagem).`);
+    }
+    if (alvo.tipo === "area" && escola.areas === "raro") {
+      avisos.push(`Magia de área é rara em ${magia.escola} nas oficiais.`);
+    }
+  }
+
   const limiteAval = orcamento + Math.max(1, Math.round(orcamento * (t.aval_mestre_pct ?? 0.15)));
   const precisaAval = !bloqueada && total > orcamento && total <= limiteAval;
   if (precisaAval) avisos.push(`Passou do orçamento em ${total - orcamento} pt(s) — dá pra publicar, mas precisa do aval do mestre.`);

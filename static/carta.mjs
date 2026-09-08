@@ -42,7 +42,10 @@ export function textoBonus(m) {
   const l = listaNum(m.efeitos.bonus, m.efeitos.bonusEm, m.efeitos.bonusEscopo).filter((b) => b.valor);
   return l.length ? l.map((b) => `+${b.valor} em ${b.em || "…"}`).join(", ") : "{bônus?}";
 }
-export function textoCond(m) { return m.efeitos.condicoes?.length ? m.efeitos.condicoes.join(" e ") : "{condição?}"; }
+// as chaves vivem sem acento (o minerador normaliza o texto das oficiais); a carta mostra bonito
+export const COND_ACENTO = { caido: "caído", imovel: "imóvel", vulneravel: "vulnerável", enfeiticado: "enfeitiçado" };
+export const condNome = (c) => COND_ACENTO[c] || c;
+export function textoCond(m) { return m.efeitos.condicoes?.length ? m.efeitos.condicoes.map(condNome).join(" e ") : "{condição?}"; }
 export function textoPenalidade(m) {
   const l = listaNum(m.efeitos.penalidade, m.efeitos.penalidadeEm, m.efeitos.penalidadeEscopo).filter((b) => b.valor);
   return l.length ? l.map((b) => `−${b.valor} em ${b.em || "…"}`).join(", ") : "{penalidade?}";

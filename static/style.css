@@ -143,6 +143,7 @@ input[type="number"] { width: 76px; }
 .sub-painel h3 { font-family: "Cinzel", serif; margin: 0 0 6px; color: var(--ouro); font-size: 1rem; }
 
 .chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; }
+.cat-cond { margin: 10px 0 -4px; font-size: .74rem; letter-spacing: .08em; text-transform: uppercase; opacity: .55; font-weight: 600; }
 .chip {
   border: 1px solid var(--borda); border-radius: 999px; padding: 4px 12px;
   background: #150a0d; color: var(--texto-2); cursor: pointer; font: inherit; font-size: .86rem;

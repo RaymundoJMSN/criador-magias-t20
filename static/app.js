@@ -2,7 +2,7 @@
 import { calcular, circuloEfetivo, ehOfensiva, tarifaDoTexto, semAcento } from "/custo.mjs";
 import { ROTULOS, RESTRITO_SINGULAR, FORMAS, esc, sanitizarHtml, htmlParaTexto,
          textoDano, textoCura, textoBonus, textoCond, textoAlvo, textoResistencia,
-         PLACEHOLDERS, substituir, cartaHtml, cartaOficialHtml, textoPenalidade } from "/carta.mjs";
+         PLACEHOLDERS, substituir, cartaHtml, cartaOficialHtml, textoPenalidade, condNome } from "/carta.mjs";
 
 const $ = (s) => document.querySelector(s);
 const normNome = (n) => (n || "").trim().normalize("NFC").toLowerCase();
@@ -292,12 +292,21 @@ function passoConfig(box) {
   if (ef.bonus != null) painelNumerico("bonus", "🛡 Bônus", "+");
   if (ef.penalidade != null) painelNumerico("penalidade", "➖ Penalidade (o alvo resiste)", "−");
   if (ef.condicoes) {
-    const chips = el("div", { className: "chips" });
-    for (const [tier, lista] of Object.entries(TABELA.efeitos.condicoes_tier)) {
-      for (const c of lista) {
+    // as 35 condições oficiais, agrupadas pelo "Tipo" do Livro Básico
+    const tierDe = {};
+    for (const [tier, lista] of Object.entries(TABELA.efeitos.condicoes_tier)) for (const c of lista) tierDe[c] = tier;
+    const grupos = { ...TABELA.condicao_categoria };
+    const comTipo = new Set(Object.values(grupos).flat());
+    grupos["sem tipo"] = Object.keys(tierDe).filter((c) => !comTipo.has(c)).sort();
+    const painel = el("div", { className: "sub-painel" },
+      el("h3", {}, "🕸 Condições"),
+      el("p", { className: "explica", textContent: "a mais cara conta cheia; extras pagam metade do próprio tier. Com resistência parcial/reduz, tudo sai por metade." }));
+    for (const [grupo, lista] of Object.entries(grupos)) {
+      const chips = el("div", { className: "chips" });
+      for (const c of [...lista].sort()) {
         const b = el("button", {
           type: "button", className: "chip" + (ef.condicoes.includes(c) ? " on" : ""),
-          innerHTML: `${c} <span class="tier">${TABELA.efeitos.condicao_custo_por_tier[tier]}pt</span>`,
+          innerHTML: `${condNome(c)} <span class="tier">${TABELA.efeitos.condicao_custo_por_tier[tierDe[c]]}pt</span>`,
           onclick: () => {
             const i = ef.condicoes.indexOf(c);
             i >= 0 ? ef.condicoes.splice(i, 1) : ef.condicoes.push(c);
@@ -306,12 +315,9 @@ function passoConfig(box) {
         });
         chips.append(b);
       }
+      painel.append(el("h4", { className: "cat-cond", textContent: grupo }), chips);
     }
-    box.append(el("div", { className: "sub-painel" },
-      el("h3", {}, "🕸 Condições"),
-      el("p", { className: "explica", textContent: "só a mais cara conta cheia; extras custam +1 cada. Com resistência parcial/reduz, sai por metade." }),
-      chips,
-    ));
+    box.append(painel);
   }
   if (ef.custom) {
     const rt = richText({

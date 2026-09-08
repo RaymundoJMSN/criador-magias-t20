@@ -133,7 +133,8 @@ CONDICOES = ["abalado", "agarrado", "apavorado", "atordoado", "caido", "cego",
              "enredado", "esmorecido", "exausto", "fascinado", "fatigado",
              "fraco", "frustrado", "imovel", "inconsciente", "indefeso", "lento",
              "ofuscado", "paralisado", "pasmo", "petrificado", "sangrando",
-             "surdo", "vulneravel", "alquebrado", "doente", "envenenado"]
+             "surdo", "vulneravel", "alquebrado", "doente", "envenenado",
+             "enfeiticado", "sobrecarregado", "surpreendido"]
 
 
 def dados_str(m):

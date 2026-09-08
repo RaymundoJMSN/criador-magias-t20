@@ -44,7 +44,7 @@ export function textoBonus(m) {
 }
 // as chaves vivem sem acento (o minerador normaliza o texto das oficiais); a carta mostra bonito
 export const COND_ACENTO = { caido: "caído", imovel: "imóvel", vulneravel: "vulnerável", enfeiticado: "enfeitiçado" };
-export const condNome = (c) => COND_ACENTO[c] || c;
+export const condNome = (c) => c ? (COND_ACENTO[c] || c) : "";
 export function textoCond(m) { return m.efeitos.condicoes?.length ? m.efeitos.condicoes.map(condNome).join(" e ") : "{condição?}"; }
 export function textoPenalidade(m) {
   const l = listaNum(m.efeitos.penalidade, m.efeitos.penalidadeEm, m.efeitos.penalidadeEscopo).filter((b) => b.valor);
@@ -74,12 +74,30 @@ export function textoResistencia(m) {
   return r === "nenhuma" ? "nenhuma" : `${m.eixos.teste} ${ROTULOS.resistencia[r]}${cd}`;
 }
 
+export const textoDados = (d) => d ? `${d.n}d${d.faces}${d.fixo ? "+" + d.fixo : ""}` : "";
+export const textoCd = (m) => m.eixos.cdFixa ? `CD ${m.eixos.cdFixa}` : "CD da magia";
+
 export const PLACEHOLDERS = {
   dano: textoDano, cura: textoCura, bonus: textoBonus, condicao: textoCond,
   alvo: textoAlvo, alcance: (m) => ROTULOS.alcance[m.eixos.alcance].replace(/ \(.+\)/, ""),
   duracao: (m) => ROTULOS.duracao[m.eixos.duracao], teste: (m) => m.eixos.teste,
   penalidade: textoPenalidade,
   efeitoespecial: (m) => m.efeitos.custom?.texto ? htmlParaTexto(m.efeitos.custom.texto) : "{efeito especial?}",
+  // v13: pedaços soltos, pra escrever o texto do jeito que a magia pede
+  dano_dado: (m) => textoDados(m.efeitos.dano) || "{dano?}",
+  tipo_dano: (m) => textoTipos(m.efeitos.dano) || "{tipo?}",
+  cura_dado: (m) => textoDados(m.efeitos.cura) || "{cura?}",
+  cd: textoCd,
+  resistencia: (m) => textoResistencia(m),
+  area: (m) => m.eixos.alvo?.tipo === "area" ? textoArea(m.eixos.alvo) : "{área?}",
+  execucao: (m) => ROTULOS.execucao[m.eixos.execucao],
+  escola: (m) => m.escola || "",
+  circulo: (m) => `${m.circulo || 1}º círculo`,
+  nome: (m) => m.nome || "esta magia",
+  condicao1: (m) => condNome(m.efeitos.condicoes?.[0]) || "{condição 1?}",
+  condicao2: (m) => condNome(m.efeitos.condicoes?.[1]) || "{condição 2?}",
+  condicao3: (m) => condNome(m.efeitos.condicoes?.[2]) || "{condição 3?}",
+  condicao4: (m) => condNome(m.efeitos.condicoes?.[3]) || "{condição 4?}",
 };
 
 export function substituir(textoHtml, m, negrito) {
@@ -111,7 +129,7 @@ export function cartaHtml(m, r) {
     <div class="stats">
       <b>Execução:</b> ${ROTULOS.execucao[m.eixos.execucao]}; <b>Alcance:</b> ${ROTULOS.alcance[m.eixos.alcance].replace(/ \(.+\)/, "")};
       <b>Alvo:</b> ${textoAlvo(m)}; <b>Duração:</b> ${ROTULOS.duracao[m.eixos.duracao]};
-      <b>Resistência:</b> ${textoResistencia(m)}
+      <b>Resistência:</b> ${textoResistencia(m)}${m.eixos.umaVezPorCena ? "; <b>Limite:</b> uma vez por cena no mesmo alvo" : ""}${m.eixos.componente ? "; <b>Componente:</b> material consumido" : ""}
     </div>
     ${desc ? `<div class="desc">${desc}</div>` : ""}
     ${!desc && custom ? `<div class="desc">${custom}</div>` : ""}

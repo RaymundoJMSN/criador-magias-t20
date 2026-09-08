@@ -40,24 +40,6 @@
    "preco_efeito": 1
   },
   {
-   "slug": "protecao-de-tauron",
-   "nome": "Proteção de Tauron",
-   "grupo": "Divina",
-   "escola": "Abjuração",
-   "eixos": {
-    "execucao": "movimento",
-    "alcance": "curto",
-    "duracao": "cena",
-    "resistencia": "nenhuma",
-    "alvo": {
-     "tipo": "alvos",
-     "qtd": 1
-    }
-   },
-   "custo_eixos": 8,
-   "preco_efeito": 2
-  },
-  {
    "slug": "alarme",
    "nome": "Alarme",
    "grupo": "Arcana",
@@ -113,24 +95,6 @@
    "preco_efeito": 4
   },
   {
-   "slug": "suporte-ambiental",
-   "nome": "Suporte Ambiental",
-   "grupo": "Divina",
-   "escola": "Abjuração",
-   "eixos": {
-    "execucao": "padrao",
-    "alcance": "toque",
-    "duracao": "1dia",
-    "resistencia": "nenhuma",
-    "alvo": {
-     "tipo": "alvos",
-     "qtd": 1
-    }
-   },
-   "custo_eixos": 6,
-   "preco_efeito": 4
-  },
-  {
    "slug": "bencao",
    "nome": "Bênção",
    "grupo": "Divina",
@@ -161,6 +125,24 @@
     "alvo": {
      "tipo": "alvos",
      "qtd": "escolhidas"
+    }
+   },
+   "custo_eixos": 5,
+   "preco_efeito": 5
+  },
+  {
+   "slug": "protecao-de-tauron",
+   "nome": "Proteção de Tauron",
+   "grupo": "Divina",
+   "escola": "Abjuração",
+   "eixos": {
+    "execucao": "movimento",
+    "alcance": "curto",
+    "duracao": "cena",
+    "resistencia": "nenhuma",
+    "alvo": {
+     "tipo": "alvos",
+     "qtd": 1
     }
    },
    "custo_eixos": 5,
@@ -217,6 +199,25 @@
      "tipo": "area",
      "forma": "esfera",
      "tamanho_m": 18
+    }
+   },
+   "custo_eixos": 4,
+   "preco_efeito": 6
+  },
+  {
+   "slug": "distracao-fugaz",
+   "nome": "Distração Fugaz",
+   "grupo": "Arcana",
+   "escola": "Ilusão",
+   "eixos": {
+    "execucao": "padrao",
+    "alcance": "curto",
+    "duracao": "instantanea",
+    "resistencia": "nenhuma",
+    "alvo": {
+     "tipo": "alvos",
+     "qtd": 1,
+     "restrito": "humanoide"
     }
    },
    "custo_eixos": 4,
@@ -368,25 +369,6 @@
    "preco_efeito": 8
   },
   {
-   "slug": "distracao-fugaz",
-   "nome": "Distração Fugaz",
-   "grupo": "Arcana",
-   "escola": "Ilusão",
-   "eixos": {
-    "execucao": "padrao",
-    "alcance": "curto",
-    "duracao": "instantanea",
-    "resistencia": "nenhuma",
-    "alvo": {
-     "tipo": "alvos",
-     "qtd": 1,
-     "restrito": "humanoide"
-    }
-   },
-   "custo_eixos": 1,
-   "preco_efeito": 9
-  },
-  {
    "slug": "escudo-da-fe",
    "nome": "Escudo da Fé",
    "grupo": "Divina",
@@ -414,6 +396,24 @@
     "alcance": "curto",
     "duracao": "instantanea",
     "resistencia": "reduz-metade",
+    "alvo": {
+     "tipo": "alvos",
+     "qtd": 1
+    }
+   },
+   "custo_eixos": 1,
+   "preco_efeito": 9
+  },
+  {
+   "slug": "suporte-ambiental",
+   "nome": "Suporte Ambiental",
+   "grupo": "Divina",
+   "escola": "Abjuração",
+   "eixos": {
+    "execucao": "padrao",
+    "alcance": "toque",
+    "duracao": "1dia",
+    "resistencia": "nenhuma",
     "alvo": {
      "tipo": "alvos",
      "qtd": 1
@@ -724,25 +724,6 @@
     "resistencia": "desacredita",
     "alvo": {
      "tipo": "pessoal"
-    }
-   },
-   "custo_eixos": -1,
-   "preco_efeito": 11
-  },
-  {
-   "slug": "enfeiticar",
-   "nome": "Enfeitiçar",
-   "grupo": "Arcana",
-   "escola": "Encantamento",
-   "eixos": {
-    "execucao": "padrao",
-    "alcance": "curto",
-    "duracao": "cena",
-    "resistencia": "anula",
-    "alvo": {
-     "tipo": "alvos",
-     "qtd": 1,
-     "restrito": "humanoide"
     }
    },
    "custo_eixos": -1,
@@ -1273,83 +1254,55 @@
  ],
  "numericas": [
   {
-   "slug": "comando",
-   "nome": "Comando",
-   "grupo": "Divina",
-   "escola": "Encantamento",
+   "slug": "descobrir-fraqueza",
+   "nome": "Descobrir Fraqueza",
+   "grupo": "Arcana",
+   "escola": "Adivinhação",
    "eixos": {
-    "execucao": "padrao",
-    "alcance": "curto",
-    "duracao": "1rodada",
-    "resistencia": "anula",
-    "alvo": {
-     "tipo": "alvos",
-     "qtd": 1,
-     "restrito": "humanoide"
-    }
-   },
-   "partes": {
-    "execucao": 0,
-    "alcance": 0,
-    "duracao": -1,
-    "alvo": -1,
-    "resistencia": -1,
-    "condicao": 2
-   },
-   "total": -1
-  },
-  {
-   "slug": "furia-dos-antepassados",
-   "nome": "Fúria dos Antepassados",
-   "grupo": "Divina",
-   "escola": "Evocação",
-   "eixos": {
-    "execucao": "padrao",
+    "execucao": "movimento",
     "alcance": "curto",
     "duracao": "instantanea",
-    "resistencia": "parcial",
+    "resistencia": "especial",
     "alvo": {
      "tipo": "alvos",
-     "qtd": 1,
-     "restrito": "humanoide"
+     "qtd": 1
     }
    },
    "partes": {
-    "execucao": 0,
+    "execucao": 2,
     "alcance": 0,
     "duracao": 0,
-    "alvo": -1,
+    "alvo": 0,
     "resistencia": 0,
-    "dano": 3.0,
-    "condicao": 1.0
+    "condicao": 2
    },
-   "total": 3.0
+   "total": 4
   },
   {
-   "slug": "hipnotismo",
-   "nome": "Hipnotismo",
+   "slug": "enfeiticar",
+   "nome": "Enfeitiçar",
    "grupo": "Arcana",
    "escola": "Encantamento",
    "eixos": {
     "execucao": "padrao",
     "alcance": "curto",
-    "duracao": "outro",
+    "duracao": "cena",
     "resistencia": "anula",
     "alvo": {
      "tipo": "alvos",
      "qtd": 1,
-     "restrito": "humanoide ou animal"
+     "restrito": "humanoide"
     }
    },
    "partes": {
     "execucao": 0,
     "alcance": 0,
-    "duracao": 0,
+    "duracao": 1,
     "alvo": -1,
     "resistencia": -1,
     "condicao": 5
    },
-   "total": 3
+   "total": 4
   },
   {
    "slug": "bofetada-de-nimb",
@@ -1378,6 +1331,58 @@
    "total": 5.0
   },
   {
+   "slug": "comando",
+   "nome": "Comando",
+   "grupo": "Divina",
+   "escola": "Encantamento",
+   "eixos": {
+    "execucao": "padrao",
+    "alcance": "curto",
+    "duracao": "1rodada",
+    "resistencia": "anula",
+    "alvo": {
+     "tipo": "alvos",
+     "qtd": 1,
+     "restrito": "humanoide"
+    }
+   },
+   "partes": {
+    "execucao": 0,
+    "alcance": 0,
+    "duracao": -1,
+    "alvo": -1,
+    "resistencia": -1,
+    "condicao": 8
+   },
+   "total": 5
+  },
+  {
+   "slug": "amedrontar",
+   "nome": "Amedrontar",
+   "grupo": "Arcana",
+   "escola": "Necromancia",
+   "eixos": {
+    "execucao": "padrao",
+    "alcance": "curto",
+    "duracao": "cena",
+    "resistencia": "parcial",
+    "alvo": {
+     "tipo": "alvos",
+     "qtd": 1,
+     "restrito": "humanoide ou animal"
+    }
+   },
+   "partes": {
+    "execucao": 0,
+    "alcance": 0,
+    "duracao": 1,
+    "alvo": -1,
+    "resistencia": 0,
+    "condicao": 6.0
+   },
+   "total": 6.0
+  },
+  {
    "slug": "espirito-balistico",
    "nome": "Espírito Balístico",
    "grupo": "Arcana",
@@ -1403,29 +1408,57 @@
    "total": 6.0
   },
   {
-   "slug": "descobrir-fraqueza",
-   "nome": "Descobrir Fraqueza",
-   "grupo": "Arcana",
-   "escola": "Adivinhação",
+   "slug": "furia-dos-antepassados",
+   "nome": "Fúria dos Antepassados",
+   "grupo": "Divina",
+   "escola": "Evocação",
    "eixos": {
-    "execucao": "movimento",
+    "execucao": "padrao",
     "alcance": "curto",
     "duracao": "instantanea",
-    "resistencia": "especial",
+    "resistencia": "parcial",
     "alvo": {
      "tipo": "alvos",
-     "qtd": 1
+     "qtd": 1,
+     "restrito": "humanoide"
     }
    },
    "partes": {
-    "execucao": 2,
+    "execucao": 0,
     "alcance": 0,
     "duracao": 0,
-    "alvo": 0,
+    "alvo": -1,
     "resistencia": 0,
-    "condicao": 5
+    "dano": 3.0,
+    "condicao": 4.0
    },
-   "total": 7
+   "total": 6.0
+  },
+  {
+   "slug": "hipnotismo",
+   "nome": "Hipnotismo",
+   "grupo": "Arcana",
+   "escola": "Encantamento",
+   "eixos": {
+    "execucao": "padrao",
+    "alcance": "curto",
+    "duracao": "outro",
+    "resistencia": "anula",
+    "alvo": {
+     "tipo": "alvos",
+     "qtd": 1,
+     "restrito": "humanoide ou animal"
+    }
+   },
+   "partes": {
+    "execucao": 0,
+    "alcance": 0,
+    "duracao": 0,
+    "alvo": -1,
+    "resistencia": -1,
+    "condicao": 8
+   },
+   "total": 6
   },
   {
    "slug": "explosao-de-chamas",
@@ -1529,6 +1562,31 @@
    "total": 8.0
   },
   {
+   "slug": "criar-elementos",
+   "nome": "Criar Elementos",
+   "grupo": "Divina",
+   "escola": "Convocação",
+   "eixos": {
+    "execucao": "padrao",
+    "alcance": "curto",
+    "duracao": "instantanea",
+    "resistencia": "nenhuma",
+    "alvo": {
+     "tipo": "outro"
+    }
+   },
+   "partes": {
+    "execucao": 0,
+    "alcance": 0,
+    "duracao": 0,
+    "alvo": 0,
+    "resistencia": 2,
+    "dano": 3.0,
+    "condicao": 3.0
+   },
+   "total": 8.0
+  },
+  {
    "slug": "teia",
    "nome": "Teia",
    "grupo": "Arcana",
@@ -1604,57 +1662,6 @@
     "condicao": 2.5
    },
    "total": 8.5
-  },
-  {
-   "slug": "criar-elementos",
-   "nome": "Criar Elementos",
-   "grupo": "Divina",
-   "escola": "Convocação",
-   "eixos": {
-    "execucao": "padrao",
-    "alcance": "curto",
-    "duracao": "instantanea",
-    "resistencia": "nenhuma",
-    "alvo": {
-     "tipo": "outro"
-    }
-   },
-   "partes": {
-    "execucao": 0,
-    "alcance": 0,
-    "duracao": 0,
-    "alvo": 0,
-    "resistencia": 2,
-    "dano": 3.0,
-    "condicao": 3.75
-   },
-   "total": 8.75
-  },
-  {
-   "slug": "amedrontar",
-   "nome": "Amedrontar",
-   "grupo": "Arcana",
-   "escola": "Necromancia",
-   "eixos": {
-    "execucao": "padrao",
-    "alcance": "curto",
-    "duracao": "cena",
-    "resistencia": "parcial",
-    "alvo": {
-     "tipo": "alvos",
-     "qtd": 1,
-     "restrito": "humanoide ou animal"
-    }
-   },
-   "partes": {
-    "execucao": 0,
-    "alcance": 0,
-    "duracao": 1,
-    "alvo": -1,
-    "resistencia": 0,
-    "condicao": 9.0
-   },
-   "total": 9.0
   },
   {
    "slug": "armadura-elemental",
@@ -1936,6 +1943,31 @@
    "total": 12.0
   },
   {
+   "slug": "raio-do-enfraquecimento",
+   "nome": "Raio do Enfraquecimento",
+   "grupo": "Arcana",
+   "escola": "Necromancia",
+   "eixos": {
+    "execucao": "padrao",
+    "alcance": "curto",
+    "duracao": "cena",
+    "resistencia": "parcial",
+    "alvo": {
+     "tipo": "alvos",
+     "qtd": 1
+    }
+   },
+   "partes": {
+    "execucao": 0,
+    "alcance": 0,
+    "duracao": 1,
+    "alvo": 0,
+    "resistencia": 0,
+    "condicao": 11.5
+   },
+   "total": 12.5
+  },
+  {
    "slug": "flecha-de-luz",
    "nome": "Flecha de Luz",
    "grupo": "Universal",
@@ -1988,31 +2020,6 @@
    "total": 14.0
   },
   {
-   "slug": "raio-do-enfraquecimento",
-   "nome": "Raio do Enfraquecimento",
-   "grupo": "Arcana",
-   "escola": "Necromancia",
-   "eixos": {
-    "execucao": "padrao",
-    "alcance": "curto",
-    "duracao": "cena",
-    "resistencia": "parcial",
-    "alvo": {
-     "tipo": "alvos",
-     "qtd": 1
-    }
-   },
-   "partes": {
-    "execucao": 0,
-    "alcance": 0,
-    "duracao": 1,
-    "alvo": 0,
-    "resistencia": 0,
-    "condicao": 13.0
-   },
-   "total": 14.0
-  },
-  {
    "slug": "sono",
    "nome": "Sono",
    "grupo": "Arcana",
@@ -2034,9 +2041,9 @@
     "duracao": 1,
     "alvo": -1,
     "resistencia": 0,
-    "condicao": 19.0
+    "condicao": 17.5
    },
-   "total": 19.0
+   "total": 17.5
   }
  ]
 }

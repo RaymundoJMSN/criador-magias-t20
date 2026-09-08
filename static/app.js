@@ -110,12 +110,14 @@ function richText({ html, placeholder, oninput, alto }) {
 
 
 function chipsTermos(m, ta, aoInserir) {
-  const chaves = ["alvo", "alcance", "duracao",
-    ...(m.efeitos.dano ? ["dano"] : []), ...(m.efeitos.cura ? ["cura"] : []),
+  const chaves = ["nome", "circulo", "escola", "execucao", "alvo", "alcance", "duracao",
+    ...(m.eixos.alvo?.tipo === "area" ? ["area"] : []),
+    ...(m.efeitos.dano ? ["dano", "dano_dado", "tipo_dano"] : []), ...(m.efeitos.cura ? ["cura", "cura_dado"] : []),
     ...((Array.isArray(m.efeitos.bonus) ? m.efeitos.bonus.length : m.efeitos.bonus) ? ["bonus"] : []),
     ...((Array.isArray(m.efeitos.penalidade) ? m.efeitos.penalidade.length : m.efeitos.penalidade) ? ["penalidade"] : []),
     ...(m.efeitos.condicoes?.length ? ["condicao"] : []),
-    ...(ehOfensiva(m) && m.eixos.resistencia !== "nenhuma" ? ["teste"] : []),
+    ...(m.efeitos.condicoes || []).slice(0, 4).map((_, i) => "condicao" + (i + 1)),
+    ...(ehOfensiva(m) && m.eixos.resistencia !== "nenhuma" ? ["teste", "resistencia", "cd"] : []),
     ...(m.efeitos.custom ? ["efeitoespecial"] : [])];
   const box = el("div", { className: "chips" });
   for (const c of chaves) {
@@ -414,6 +416,19 @@ function passoTempo(box) {
     el("h3", { className: "sub-perg", textContent: "Execução — o que ela custa do seu turno?" }), grupoEixo("execucao"),
     el("h3", { className: "sub-perg", textContent: "Duração — quanto tempo o efeito fica?" }), grupoEixo("duracao"),
   );
+  // limites que as oficiais usam pra baratear a magia
+  const mods = TABELA.modificadores || {};
+  const limite = (chave, custo, rotulo, explica) => el("label", { className: "chk" },
+    el("input", { type: "checkbox", checked: !!magia.eixos[chave], onchange: (e) => { magia.eixos[chave] = e.target.checked; renderPasso(); atualizar(); } }),
+    el("span", {}, ` ${rotulo} `, el("b", { className: "op-custo devolve" }, `${custo} pt`)),
+    el("span", { className: "explica", style: "display:block;margin-left:24px", textContent: explica }));
+  box.append(el("div", { className: "sub-painel" },
+    el("h3", {}, "⏳ Limites (devolvem pontos)"),
+    limite("umaVezPorCena", mods.uma_vez_por_cena ?? -1, "o mesmo alvo só é afetado uma vez por cena",
+      "como Adaga Mental, Comando e Leque Cromático — impede reaplicar no mesmo inimigo na mesma cena"),
+    limite("componente", mods.componente_material ?? -1, "exige um componente material que se gasta",
+      "como Aprisionamento, Runa de Proteção e Servo Divino — sem o material, a magia não sai"),
+  ));
 }
 
 // ---------------------------------------------------------------- passo 6
@@ -567,7 +582,6 @@ function alcaDeArrasto(lista) {
     e.preventDefault();
     const item = alca.closest(".apr-item");
     item.classList.add("arrastando");
-    alca.setPointerCapture(e.pointerId);
     const aoMover = (ev) => {
       const alvo = [...lista.children].find((c) => {
         if (c === item) return false;
@@ -580,13 +594,15 @@ function alcaDeArrasto(lista) {
     };
     const aoSoltar = () => {
       item.classList.remove("arrastando");
-      alca.removeEventListener("pointermove", aoMover);
-      alca.removeEventListener("pointerup", aoSoltar);
+      document.removeEventListener("pointermove", aoMover);
+      document.removeEventListener("pointerup", aoSoltar);
       magia.aprimoramentos = [...lista.children].map((c) => c.__ap);
       renderPasso(); atualizar();
     };
-    alca.addEventListener("pointermove", aoMover);
-    alca.addEventListener("pointerup", aoSoltar);
+    // no document, e não na alça: insertBefore tira o nó do DOM por um instante e
+    // isso cancelaria o pointer capture no meio do arrasto
+    document.addEventListener("pointermove", aoMover);
+    document.addEventListener("pointerup", aoSoltar);
   });
   return alca;
 }

@@ -4347,10 +4347,6 @@
     "forma": "esfera",
     "tamanho_m": 3
    },
-   "condicoes": [
-    "fraco",
-    "vulneravel"
-   ],
    "aprimoramentos": [
     {
      "pm": 2,
@@ -5104,6 +5100,9 @@
     "qtd": 1,
     "restrito": "humanoide"
    },
+   "condicoes": [
+    "enfeiticado"
+   ],
    "aprimoramentos": [
     {
      "pm": 2,
@@ -7314,27 +7313,6 @@
    "alvo": {
     "tipo": "pessoal"
    },
-   "condicoes": [
-    "abalado",
-    "apavorado",
-    "atordoado",
-    "cego",
-    "confuso",
-    "debilitado",
-    "enjoado",
-    "esmorecido",
-    "exausto",
-    "fascinado",
-    "fatigado",
-    "fraco",
-    "frustrado",
-    "lento",
-    "ofuscado",
-    "paralisado",
-    "pasmo",
-    "alquebrado",
-    "envenenado"
-   ],
    "aprimoramentos": [
     {
      "pm": 5,
@@ -10332,28 +10310,6 @@
     "tipo": "alvos",
     "qtd": 1
    },
-   "condicoes": [
-    "abalado",
-    "apavorado",
-    "atordoado",
-    "cego",
-    "confuso",
-    "debilitado",
-    "enjoado",
-    "esmorecido",
-    "exausto",
-    "fascinado",
-    "fatigado",
-    "fraco",
-    "frustrado",
-    "lento",
-    "ofuscado",
-    "paralisado",
-    "pasmo",
-    "surdo",
-    "alquebrado",
-    "envenenado"
-   ],
    "aprimoramentos": [
     {
      "pm": 2,
@@ -11944,26 +11900,6 @@
     "dados": "2d8+4",
     "media": 13.0
    },
-   "condicoes": [
-    "abalado",
-    "apavorado",
-    "atordoado",
-    "cego",
-    "confuso",
-    "debilitado",
-    "enjoado",
-    "esmorecido",
-    "exausto",
-    "fascinado",
-    "fatigado",
-    "fraco",
-    "frustrado",
-    "lento",
-    "paralisado",
-    "pasmo",
-    "surdo",
-    "alquebrado"
-   ],
    "aprimoramentos": [
     {
      "pm": 2,
@@ -12136,9 +12072,6 @@
     "tipo": "alvos",
     "qtd": 1
    },
-   "condicoes": [
-    "em chamas"
-   ],
    "aprimoramentos": [
     {
      "pm": 5,

@@ -161,7 +161,7 @@
     "anula": 1
    },
    "outros": {
-    "nenhuma": 124,
+    "nenhuma": 129,
     "anula": 17,
     "parcial": 8,
     "especial": 4,
@@ -169,7 +169,7 @@
     "reduz-metade": 1
    },
    "so_condicao": {
-    "nenhuma": 19,
+    "nenhuma": 14,
     "parcial": 13,
     "anula": 9,
     "especial": 2,

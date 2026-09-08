@@ -81,7 +81,7 @@ export function calcular(magia, tabela) {
   if (efeitos.dano) {
     partes.dano = custoDados(efeitos.dano, ef.dano_por_dado, ef.dano_fixo_por_ponto);
     // dano com duração = repetível toda rodada (estilo Açoite Flamejante)
-    if (["sustentada", "cena", "1dia", "permanente"].includes(eixos.duracao)) {
+    if (["sustentada", "cena", "1dia"].includes(eixos.duracao)) {
       partes.dano *= ef.dano_repetivel_mult ?? 1.5;
       avisos.push(`Dano com duração ${eixos.duracao} repete a cada rodada — custo do dano ×${ef.dano_repetivel_mult ?? 1.5}.`);
     }
@@ -145,10 +145,10 @@ export function calcular(magia, tabela) {
     // rider de dano em área é oficial (Detonação Congelante)
     if (!efeitos.dano && travas.tier4_exige && tiers[0] >= 4) {
       const ok = alvo.tipo === "alvos" && !(Number(alvo.qtd) > travas.tier4_exige.alvos_max) &&
-        alvo.qtd !== "escolhidas" && res === travas.tier4_exige.resistencia;
+        alvo.qtd !== "escolhidas" && res !== "nenhuma";
       if (!ok) {
         bloqueada = true;
-        avisos.push(`Condição incapacitante no ${magia.circulo || 1}º círculo só como o Sono oficial: 1 alvo e resistência ${travas.tier4_exige.resistencia}.`);
+        avisos.push(`Condição incapacitante no ${magia.circulo || 1}º círculo só como o Sono oficial: 1 alvo e com teste de resistência.`);
       }
     }
     if (!efeitos.dano && travas.tier_max_area && tiers[0] > travas.tier_max_area && (alvo.tipo === "area" || alvo.qtd === "escolhidas")) {
@@ -158,11 +158,21 @@ export function calcular(magia, tabela) {
   }
 
   // permanente numérico não existe no 1º círculo
+  // permanente com dano existe (Runa de Proteção, 2º: armadilha que explode) e paga o ×1.5 de
+  // dano repetível; permanente que CURA, dá bônus ou impõe condição só do 3º círculo pra cima
   if (travas.permanente_so_custom && eixos.duracao === "permanente" &&
-      (efeitos.dano || efeitos.cura || temValor(efeitos.bonus) || temValor(efeitos.penalidade) || condicoes.length)) {
+      (efeitos.cura || temValor(efeitos.bonus) || temValor(efeitos.penalidade) || condicoes.length)) {
     bloqueada = true;
-    avisos.push(`Duração permanente no ${magia.circulo || 1}º círculo só para efeito especial (com aprovação do mestre) — nunca para dano/cura/bônus/condição.`);
+    avisos.push(`Duração permanente no ${magia.circulo || 1}º círculo só para dano (armadilha, como a Runa de Proteção) ou efeito especial com aval do mestre — nunca cura/bônus/condição.`);
   }
+
+  // limites que barateiam a magia (oficiais em data/padroes-corpus.json)
+  const mods = t.modificadores || {};
+  if (eixos.umaVezPorCena) {
+    if (ofensiva) partes.limite = mods.uma_vez_por_cena ?? -1;
+    else avisos.push("\"Uma vez por cena\" só desconta em magia que afeta alvos (dano, condição ou penalidade).");
+  }
+  if (eixos.componente) partes.componente = mods.componente_material ?? -1;
 
   if (efeitos.custom && (efeitos.custom.texto || efeitos.custom.pontos)) {
     partes.custom = Number(efeitos.custom.pontos) || 0;

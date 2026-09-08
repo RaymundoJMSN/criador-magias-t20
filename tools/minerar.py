@@ -158,7 +158,14 @@ def minerar_descricao(desc):
     m = re.search(r"(?:recupera|cura)[^.]{0,40}?(\d+d\d+(?:\+\d+)?)\s*(?:pontos de vida|pv)", n)
     if m:
         out["cura"] = {"dados": m.group(1), "media": media_dados(m.group(1))}
-    conds = [c for c in CONDICOES if re.search(r"\b" + c.replace(" ", r"\s") + r"[ao]?s?\b", n)]
+    # so conta a condicao que a magia IMPOE: frase que remove/da imunidade nao vale
+    # (Sopro da Salvacao lista 19 condicoes que ela CURA)
+    nega = re.compile(r"\b(imune|imunes|imunidade|remov\w*|encerra|livra|protegid\w*|dissipa)\b")
+    conds = []
+    for c in CONDICOES:
+        rx = re.compile(r"\b" + c.replace(" ", r"\s") + r"[ao]?s?\b")
+        if any(rx.search(f) and not nega.search(f) for f in re.split(r"[.;]", n)):
+            conds.append(c)
     if conds:
         out["condicoes"] = conds
     m = re.search(r"(?:bonus|penalidade) de ([+-]?\d+) em (\w+)", n)

@@ -256,4 +256,29 @@ r = calcular({
 }, tabela);
 assert.ok(!r.partes.cd && r.avisos.some((a) => a.includes("CD fixa só faz sentido")), "CD fixa sem teste não devolve ponto");
 
+// v13 — limites que devolvem ponto (uma vez por cena / componente material)
+const lim = (extra) => calcular({
+  circulo: 1, escola: "Encantamento",
+  eixos: { execucao: "padrao", alcance: "curto", duracao: "cena", resistencia: "anula", teste: "Vontade", alvo: { tipo: "alvos", qtd: 1 }, ...extra },
+  efeitos: { condicoes: ["fascinado"] },
+}, tabela);
+const base = lim({}).total;
+assert.equal(lim({ umaVezPorCena: true }).total, base - 1, "uma vez por cena devolve 1");
+assert.equal(lim({ componente: true }).total, base - 1, "componente material devolve 1");
+assert.equal(lim({ umaVezPorCena: true, componente: true }).total, base - 2, "os dois somam");
+r = calcular({
+  circulo: 1, eixos: { execucao: "padrao", alcance: "pessoal", duracao: "cena", umaVezPorCena: true, alvo: { tipo: "pessoal" } },
+  efeitos: { bonus: [{ valor: 2, em: "Defesa", escopo: "especifico" }] },
+}, tabela);
+assert.ok(!r.partes.limite && r.avisos.some((a) => a.includes("Uma vez por cena")), "buff nao ganha o desconto");
+
+// v13 — tiers pela escada do livro: fascinado (perde as ações) > lento > vulnerável
+const custoTier = tabela.efeitos.condicao_custo_por_tier;
+const tierDe = (c) => Object.entries(tabela.efeitos.condicoes_tier).find(([, l]) => l.includes(c))[0];
+assert.ok(+tierDe("fascinado") > +tierDe("lento") && +tierDe("lento") > +tierDe("vulneravel"), "escada de severidade");
+assert.equal(tierDe("atordoado"), tierDe("surpreendido"), "surpreendido = atordoado (desprevenido + sem ações)");
+assert.ok(+tierDe("exausto") > +tierDe("debilitado"), "exausto = debilitado + lento + vulnerável");
+assert.equal(Object.values(tabela.efeitos.condicoes_tier).flat().length, 35, "35 condições oficiais");
+assert.ok(custoTier["4"] > custoTier["3"] && custoTier["3"] > custoTier["2"]);
+
 console.log("custo.mjs OK");

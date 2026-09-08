@@ -108,43 +108,43 @@
   "condicoes_tier": {
    "1": [
     "abalado",
-    "desprevenido",
+    "alquebrado",
+    "caido",
+    "fraco",
+    "frustrado",
     "ofuscado",
-    "pasmo",
-    "sangrando",
-    "surdo"
+    "sobrecarregado",
+    "surdo",
+    "vulneravel"
    ],
    "2": [
     "agarrado",
-    "alquebrado",
-    "caido",
+    "apavorado",
+    "debilitado",
+    "desprevenido",
     "doente",
     "em chamas",
     "enfeiticado",
     "enjoado",
+    "enredado",
     "envenenado",
     "esmorecido",
-    "fascinado",
     "fatigado",
-    "fraco",
-    "frustrado",
     "lento",
-    "sobrecarregado",
-    "vulneravel"
+    "sangrando"
    ],
    "3": [
-    "apavorado",
     "atordoado",
     "cego",
     "confuso",
-    "debilitado",
-    "enredado",
     "exausto",
+    "fascinado",
     "imovel",
+    "indefeso",
+    "pasmo",
     "surpreendido"
    ],
    "4": [
-    "indefeso",
     "inconsciente",
     "paralisado",
     "petrificado"
@@ -170,7 +170,7 @@
   "condicao_rider_dano_mult": 0.5,
   "comentario_condicao": "condicao junto com dano (rider, 'atordoado na falha') paga metade; condicao extra alem da mais cara paga metade do proprio tier",
   "dano_repetivel_mult": 1.5,
-  "comentario_dano_repetivel": "dano com duracao sustentada/cena/1dia repete (estilo Acoite Flamejante): x1.5",
+  "comentario_dano_repetivel": "dano com duracao que repete a cada rodada (Acoite Flamejante): x1.5. Permanente NAO entra: a unica oficial de dano permanente e a Runa de Protecao, armadilha que dispara uma vez.",
   "bonus_escopo_mult": {
    "especifico": 1.0,
    "combate": 1.5,
@@ -202,7 +202,7 @@
   "comentario_tipo_dano": "delta flat por magia (sugestao do Russo): elementais 0, mundanos -1 (mais resistidos), luz/trevas +1, psiquico/essencia +2 (quase nada resiste)",
   "comentario_multibonus": "bonus/penalidade aceitam varios: o mais caro paga cheio, extras pagam metade (mesma regra das condicoes)",
   "comentario_tipos_lista": "efeitos.dano.tipos com 2+ tipos = o conjurador escolhe na hora e paga o delta MAIS CARO da lista (Orbe Cromatico). Corpus: 6 oficiais fazem isso (Armadura Elemental, Conjurar Monstro, Runa de Protecao...) e as que misturam faixas ja pagariam a de cima — ver data/padroes-corpus.json, gerado por tools/minerar_padroes.py.",
-  "comentario_condicoes_tier": "Lista COMPLETA e oficial: 34 condicoes do apendice do Livro Basico + sobrecarregado (cap. Equipamento). Tier = degrau de preco, calibrado nas oficiais; os novos entraram pela evidencia do corpus (desprevenido n=3 mediana 1o circulo -> tier 1; enfeiticado n=2 mediana 2o -> tier 2; surpreendido = desprevenido + sem acoes -> tier 3 como atordoado)."
+  "comentario_condicoes_tier": "Tier = severidade pela ESCADA DO PROPRIO LIVRO, nao por opiniao: (a) as condicoes que se escalam entre si dao a ordem (fraco->debilitado->inconsciente, fatigado->exausto, abalado->apavorado, frustrado->esmorecido); (b) as compostas valem pela soma (fatigado=fraco+vulneravel, enredado=lento+vulneravel, cego=desprevenido+lento, atordoado=surpreendido=desprevenido+sem acoes, exausto=debilitado+lento+vulneravel, paralisado=imovel+indefeso, inconsciente=indefeso+sem acoes, petrificado=inconsciente+RD8); (c) o corpus arbitra os empates pelo circulo em que a condicao aparece. Lista completa em condicao_categoria + as sem tipo oficial."
  },
  "aprimoramentos": {
   "trilho_pm_circulo": {
@@ -220,22 +220,29 @@
    "tier_max_area": 2,
    "tier4_exige": {
     "alvos_max": 1,
-    "resistencia": "anula"
+    "exige_teste": true
    },
    "permanente_so_custom": true,
-   "comentario": "so vale para condicao SEM dano (rider de dano e livre — Detonacao Congelante e oficial)"
+   "comentario": "So vale para condicao SEM dano (rider de dano e livre — Detonacao Congelante e oficial). tier4_exige espelha o Sono oficial: 1 alvo e algum teste de resistencia (o Sono e \"Vontade parcial\", nao \"anula\"). permanente_so_custom nao vale para dano: a Runa de Protecao (2o) e permanente e explode em 6d6."
   },
   "2": {
    "tier_max_area": 2,
    "tier4_exige": {
     "alvos_max": 1,
-    "resistencia": "anula"
+    "exige_teste": true
    },
    "permanente_so_custom": true
   },
-  "3": {},
-  "4": {},
-  "5": {}
+  "3": {
+   "tier_max_area": 3
+  },
+  "4": {
+   "tier_max_area": 4
+  },
+  "5": {
+   "tier_max_area": 4
+  },
+  "comentario": "tier_max_area = maior tier de condicao que as oficiais SEM DANO poem em area/escolhidas naquele circulo (medido em dataset.json): 1o-2o Teia (tier 2), 3o Dispersar as Trevas (cego, 3), 4o Explosao Caleidoscopica (inconsciente, 4). O teto nunca cai de um circulo para o outro. Rider de dano em area continua livre (Detonacao Congelante e oficial)."
  },
  "comentario_orcamento": "medianas das oficiais reconstruidas: 9/17.5/23/33.5/(p75=51, n=12 ruidoso) -> 10/18/25/34/45",
  "aval_mestre_pct": 0.15,
@@ -254,13 +261,9 @@
    "areas": "ok",
    "areas_n": 6,
    "condCategorias": [
-    "mental",
     "movimento",
-    "metabolismo",
-    "medo",
-    "sentidos",
-    "cansaço",
-    "veneno"
+    "mental",
+    "metabolismo"
    ],
    "condRaras": false,
    "testeTipico": "Vontade"
@@ -468,5 +471,10 @@
   "comentario": "CD propria da magia, fixa: nao escala (a normal e 10 + metade do nivel + atributo, que fica em torno de 15 na maior parte da campanha). CD 15 = neutra; cada ponto abaixo devolve 0.5 (CD 2 = -6.5, o piso, porque 1 nunca falha), cada ponto acima cobra 0.5. Precedente oficial em data/padroes-corpus.json: Area Escorregadia (Acrobacia CD 10), Armadura Gelida (Reflexos CD 20), Controlar Madeira (Forca CD 25)."
  },
  "comentario_resistencia": "DO CORPUS (padroes-corpus.json): magia com dano+condicao usa \"parcial\" em 17 de 21 casos e reduz-metade em ZERO — \"parcial\" ja significa \"passou: metade do dano e evita a condicao\" (Adaga Mental, Detonacao Congelante). \"reduz-metade\" e o modo do dano puro (Bola de Fogo, 19 casos). Por isso nao existe um modo combinado separado.",
- "comentario_condicao_categoria": "O \"Tipo\" oficial de cada condicao (LB, apendice de condicoes). As sem tipo (caido, debilitado, desprevenido, em chamas, fraco, inconsciente, indefeso, surpreendido, vulneravel) ficam de fora de proposito: a regra de escola so olha tipo oficial."
+ "comentario_condicao_categoria": "O \"Tipo\" oficial de cada condicao (LB, apendice de condicoes). As sem tipo (caido, debilitado, desprevenido, em chamas, fraco, inconsciente, indefeso, surpreendido, vulneravel) ficam de fora de proposito: a regra de escola so olha tipo oficial.",
+ "modificadores": {
+  "uma_vez_por_cena": -1,
+  "componente_material": -1,
+  "comentario": "Limites que as oficiais usam e que baratearam a magia. \"uma vez por cena\" no mesmo alvo: 11 oficiais (Adaga Mental, Comando, Leque Cromatico, Explosao Caleidoscopica...). \"componente material\" que se gasta: 12 oficiais (Aprisionamento, Servo Divino, Runa de Protecao...). Ver data/padroes-corpus.json."
+ }
 }

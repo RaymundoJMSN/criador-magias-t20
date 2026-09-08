@@ -244,12 +244,12 @@ const comCd = (cdFixa) => calcular({
   eixos: { execucao: "padrao", alcance: "curto", duracao: "instantanea", resistencia: "parcial", teste: "Reflexos", cdFixa, alvo: { tipo: "alvos", qtd: 1 } },
   efeitos: { dano: { n: 2, faces: 6, fixo: 0, tipo: "fogo" } },
 }, tabela);
-assert.equal(comCd(12).total, soFogo, "CD 12 é neutra");
-assert.equal(comCd(10).total, soFogo - 1, "CD 10 devolve 1 (Área Escorregadia)");
-assert.equal(comCd(2).partes.cd, -5, "CD 2 devolve 5 (piso)");
+assert.equal(comCd(15).total, soFogo, "CD 15 é neutra");
+assert.equal(comCd(10).total, soFogo - 2.5, "CD 10 devolve 2,5 (Área Escorregadia)");
+assert.equal(comCd(2).partes.cd, -6.5, "CD 2 devolve 6,5 (piso)");
 assert.equal(comCd(2).total, soFogo - 4, "…mas o cap de devolução do 1º círculo corta em 4");
-assert.equal(comCd(1).partes.cd, -5, "CD abaixo do piso não devolve mais");
-assert.equal(comCd(20).total, soFogo + 4, "CD 20 cobra 4 (Armadura Gélida)");
+assert.equal(comCd(1).partes.cd, -6.5, "CD abaixo do piso não devolve mais");
+assert.equal(comCd(20).total, soFogo + 2.5, "CD 20 cobra 2,5 (Armadura Gélida)");
 r = calcular({
   circulo: 1, eixos: { execucao: "padrao", alcance: "toque", duracao: "cena", resistencia: "nenhuma", cdFixa: 8, alvo: { tipo: "alvos", qtd: 1 } },
   efeitos: { bonus: [{ valor: 2, em: "Defesa", escopo: "combate" }] },

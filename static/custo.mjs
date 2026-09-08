@@ -72,7 +72,7 @@ export function calcular(magia, tabela) {
     if (!ofensiva || res === "nenhuma") {
       avisos.push("CD fixa só faz sentido com teste de resistência — escolha um teste.");
     } else {
-      partes.cd = (cd - (c.neutra ?? 12)) * (c.por_ponto ?? 0.5);
+      partes.cd = (cd - (c.neutra ?? 15)) * (c.por_ponto ?? 0.5);
       if (partes.cd) avisos.push(`CD fixa ${cd} (a normal cresce: 10 + metade do nível + atributo): ${partes.cd > 0 ? "+" : ""}${partes.cd} pt.`);
     }
   }

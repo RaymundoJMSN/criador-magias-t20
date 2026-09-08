@@ -457,11 +457,11 @@
   ]
  },
  "cd_fixa": {
-  "neutra": 12,
+  "neutra": 15,
   "por_ponto": 0.5,
   "min": 2,
   "max": 30,
-  "comentario": "CD propria da magia, fixa: nao escala (a normal e 10 + metade do nivel + atributo). CD 12 = neutra; cada ponto abaixo devolve 0.5 (CD 2 = -5, o piso, porque 1 nunca falha), cada ponto acima cobra 0.5. Precedente oficial em data/padroes-corpus.json: Area Escorregadia (Acrobacia CD 10), Armadura Gelida (Reflexos CD 20), Controlar Madeira (Forca CD 25)."
+  "comentario": "CD propria da magia, fixa: nao escala (a normal e 10 + metade do nivel + atributo, que fica em torno de 15 na maior parte da campanha). CD 15 = neutra; cada ponto abaixo devolve 0.5 (CD 2 = -6.5, o piso, porque 1 nunca falha), cada ponto acima cobra 0.5. Precedente oficial em data/padroes-corpus.json: Area Escorregadia (Acrobacia CD 10), Armadura Gelida (Reflexos CD 20), Controlar Madeira (Forca CD 25)."
  },
  "comentario_resistencia": "DO CORPUS (padroes-corpus.json): magia com dano+condicao usa \"parcial\" em 17 de 21 casos e reduz-metade em ZERO — \"parcial\" ja significa \"passou: metade do dano e evita a condicao\" (Adaga Mental, Detonacao Congelante). \"reduz-metade\" e o modo do dano puro (Bola de Fogo, 19 casos). Por isso nao existe um modo combinado separado."
 }

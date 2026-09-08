@@ -428,12 +428,12 @@ function passoResistencia(box) {
     box.append(el("div", { className: "sub-painel" },
       el("h3", {}, "🎯 CD do teste"),
       el("label", { className: "chk" },
-        el("input", { type: "checkbox", checked: !!cd, onchange: (e) => { magia.eixos.cdFixa = e.target.checked ? 12 : null; renderPasso(); atualizar(); } }),
+        el("input", { type: "checkbox", checked: !!cd, onchange: (e) => { magia.eixos.cdFixa = e.target.checked ? 15 : null; renderPasso(); atualizar(); } }),
         " a magia tem CD própria, fixa (não escala com o nível)"),
       cd ? el("label", { className: "campo mini-campo" }, "CD",
         el("input", { type: "number", min: 2, max: 30, value: cd, oninput: (e) => { magia.eixos.cdFixa = +e.target.value; atualizar(false); } })) : null,
       el("p", { className: "explica", textContent: cd
-        ? `CD 12 é neutra; cada ponto abaixo devolve 0,5 pt (CD 2 = −5, o piso — 1 nunca falha) e cada ponto acima cobra 0,5. Oficiais com CD escrita: Área Escorregadia (Acrobacia CD 10), Armadura Gélida (Reflexos CD 20).`
+        ? `CD 15 é neutra (é a CD normal na maior parte da campanha); cada ponto abaixo devolve 0,5 pt (CD 2 = −6,5, o piso — 1 nunca falha) e cada ponto acima cobra 0,5. Oficiais com CD escrita: Área Escorregadia (Acrobacia CD 10), Armadura Gélida (Reflexos CD 20).`
         : "sem marcar, vale a CD normal: 10 + metade do nível + atributo-chave — cresce com quem conjura." }),
     ));
   }

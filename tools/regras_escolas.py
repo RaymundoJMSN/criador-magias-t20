@@ -52,7 +52,7 @@ for nome, e in PERFIL["escolas"].items():
     }
 
 t["escolas"] = {"comentario": "DERIVADO de data/perfil-escolas.json por tools/regras_escolas.py — nao editar na mao, re-rodar o pipeline.", **escolas}
-t["versao"] = 11
+t["versao"] = max(t.get("versao", 0), 11)  # nao rebaixar: quem manda na versao e a tabela
 TAB_P.write_text(json.dumps(t, ensure_ascii=False, indent=1), encoding="utf-8")
 for nome, r in escolas.items():
     print(f"{nome[:14]:14s} dano={r['dano']:8s} cura={r['cura']:8s} áreas={r['areas']:4s} "

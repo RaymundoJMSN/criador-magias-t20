@@ -29,7 +29,13 @@ export function htmlParaTexto(html) {
     .replace(/\n{3,}/g, "\n\n").trim();
 }
 
-export function textoDano(m) { const d = m.efeitos.dano; return d ? `${d.n}d${d.faces}${d.fixo ? "+" + d.fixo : ""} de ${d.tipo}` : "{dano?}"; }
+export function tiposDe(d) { return d?.tipos?.length ? d.tipos : [d?.tipo].filter(Boolean); }
+export function textoTipos(d) {
+  const ts = tiposDe(d);
+  if (ts.length < 2) return ts[0] || "";
+  return `${ts.slice(0, -1).join(", ")} ou ${ts[ts.length - 1]}, à sua escolha`;
+}
+export function textoDano(m) { const d = m.efeitos.dano; return d ? `${d.n}d${d.faces}${d.fixo ? "+" + d.fixo : ""} de ${textoTipos(d)}` : "{dano?}"; }
 export function textoCura(m) { const c = m.efeitos.cura; return c ? `${c.n}d${c.faces}${c.fixo ? "+" + c.fixo : ""} PV` : "{cura?}"; }
 function listaNum(x, em, escopo) { return Array.isArray(x) ? x : x ? [{ valor: x, em, escopo }] : []; }
 export function textoBonus(m) {
@@ -61,7 +67,8 @@ export function textoAlvo(m) {
 
 export function textoResistencia(m) {
   const r = m.eixos.resistencia;
-  return r === "nenhuma" ? "nenhuma" : `${m.eixos.teste} ${ROTULOS.resistencia[r]}`;
+  const cd = m.eixos.cdFixa ? ` (CD ${m.eixos.cdFixa})` : "";
+  return r === "nenhuma" ? "nenhuma" : `${m.eixos.teste} ${ROTULOS.resistencia[r]}${cd}`;
 }
 
 export const PLACEHOLDERS = {

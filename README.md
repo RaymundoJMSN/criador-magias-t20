@@ -28,7 +28,14 @@ python tools/calibrar.py    # reconstrói as oficiais com a tabela; teste de reg
 python tools/exemplos.py    # galeria de preços de referência -> data/exemplos.json
 python tools/minerar_escolas.py  # perfil profundo por escola -> data/perfil-escolas.json (permanente)
 python tools/regras_escolas.py   # deriva as regras de escola da tabela a partir do perfil
+python tools/minerar_padroes.py  # padrões que viram regra -> data/padroes-corpus.json (permanente)
 ```
+
+`padroes-corpus.json` guarda a evidência das regras que não são preço: quais oficiais
+deixam **escolher o tipo de dano** na hora (e que faixa de custo cada lista mistura),
+toda **CD fixa** escrita numa magia, qual **modo de resistência** cada tipo de efeito usa
+(dano+condição = `parcial` em 17 de 21; `reduz-metade` em zero) e as magias com
+**condições alternativas**.
 
 O repo só versiona números e categorias — **nenhum texto das magias**. Tormenta 20
 pertence à Jambo Editora; este projeto é uma ferramenta de fã, sem conteúdo oficial.

@@ -1,5 +1,5 @@
 // Criador de Magias T20 — wizard passo a passo. Vanilla, sem build.
-import { calcular, circuloEfetivo, ehOfensiva, tarifaDoTexto } from "/custo.mjs";
+import { calcular, circuloEfetivo, ehOfensiva, tarifaDoTexto, semAcento } from "/custo.mjs";
 import { ROTULOS, RESTRITO_SINGULAR, FORMAS, esc, sanitizarHtml, htmlParaTexto,
          textoDano, textoCura, textoBonus, textoCond, textoAlvo, textoResistencia,
          PLACEHOLDERS, substituir, cartaHtml, cartaOficialHtml, textoPenalidade } from "/carta.mjs";
@@ -47,9 +47,9 @@ const EXPLICA = {
   resistencia: {
     nenhuma: "sem teste — sempre funciona (caro)",
     desacredita: "o alvo pode desconfiar da ilusão",
-    "reduz-metade": "passou no teste: metade do dano",
-    parcial: "passou: sofre efeito menor",
-    anula: "passou no teste: nada acontece (devolve ponto)",
+    "reduz-metade": "passou: metade do dano — modo do dano puro (Bola de Fogo)",
+    parcial: "passou: metade do dano E escapa da condição — é o que as oficiais com dano+condição usam (Adaga Mental, Detonação Congelante)",
+    anula: "passou: nada acontece (devolve ponto)",
   },
 };
 const TESTES = ["Fortitude", "Reflexos", "Vontade"];
@@ -221,6 +221,25 @@ function seletor(nome, valor, opcoes, aoMudar) {
       ...opcoes.map((o) => el("option", { value: String(o), textContent: String(o), selected: String(o) === String(valor) }))));
 }
 
+// tipos de dano: 1 = fixo; 2+ = escolhido na hora (Armadura Elemental, Runa de Proteção oficiais)
+function chipsTipoDano(d) {
+  if (!Array.isArray(d.tipos) || !d.tipos.length) d.tipos = [d.tipo || "fogo"];
+  const chips = el("div", { className: "chips" });
+  for (const tp of TIPOS_DANO) {
+    const delta = TABELA.efeitos.custo_tipo_dano?.[semAcento(tp)] ?? 0;
+    chips.append(el("button", {
+      type: "button", className: "chip" + (d.tipos.includes(tp) ? " on" : ""),
+      innerHTML: `${tp} <span class="tier">${delta > 0 ? "+" + delta : delta}pt</span>`,
+      onclick: () => {
+        const i = d.tipos.indexOf(tp);
+        if (i >= 0) { if (d.tipos.length > 1) d.tipos.splice(i, 1); } else d.tipos.push(tp);
+        d.tipo = d.tipos[0]; renderPasso(); atualizar();
+      },
+    }));
+  }
+  return chips;
+}
+
 function passoConfig(box) {
   const ef = magia.efeitos;
   if (ef.dano) {
@@ -231,13 +250,9 @@ function passoConfig(box) {
         seletor("quantos dados", ef.dano.n, [1, 2, 3, 4, 5, 6, 7, 8, 10, 12], (v) => (ef.dano.n = +v)),
         seletor("qual dado", ef.dano.faces, [4, 6, 8, 10, 12], (v) => (ef.dano.faces = +v)),
         seletor("+ fixo", ef.dano.fixo, [0, 1, 2, 3, 4, 5, 6, 8, 10], (v) => (ef.dano.fixo = +v)),
-        seletor("tipo", ef.dano.tipo, TIPOS_DANO, (v) => { ef.dano.tipo = v; renderPasso(); }),
       ),
-      el("p", { className: "explica", textContent: (() => {
-        const tn = (ef.dano.tipo || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
-        const dt = TABELA.efeitos.custo_tipo_dano?.[tn] ?? 0;
-        return `cada d${ef.dano.faces} custa ${custoDado(ef.dano.faces)} pts · +1 fixo = ${TABELA.efeitos.dano_fixo_por_ponto} pt · tipo ${ef.dano.tipo}: ${dt > 0 ? "+" + dt : dt} pt · referência: 2d6 num alvo, 2d8+2 no toque`;
-      })() }),
+      chipsTipoDano(ef.dano),
+      el("p", { className: "explica", textContent: `cada d${ef.dano.faces} custa ${custoDado(ef.dano.faces)} pts \u00b7 +1 fixo = ${TABELA.efeitos.dano_fixo_por_ponto} pt \u00b7 marque 2+ tipos e quem conjura escolhe na hora (paga o mais caro) \u00b7 refer\u00eancia: 2d6 num alvo, 2d8+2 no toque` }),
     ));
   }
   if (ef.cura) {
@@ -408,6 +423,19 @@ function passoResistencia(box) {
       }));
     }
     box.append(el("h3", { className: "sub-perg", textContent: "Qual teste?" }), ops);
+
+    const cd = magia.eixos.cdFixa;
+    box.append(el("div", { className: "sub-painel" },
+      el("h3", {}, "🎯 CD do teste"),
+      el("label", { className: "chk" },
+        el("input", { type: "checkbox", checked: !!cd, onchange: (e) => { magia.eixos.cdFixa = e.target.checked ? 12 : null; renderPasso(); atualizar(); } }),
+        " a magia tem CD própria, fixa (não escala com o nível)"),
+      cd ? el("label", { className: "campo mini-campo" }, "CD",
+        el("input", { type: "number", min: 2, max: 30, value: cd, oninput: (e) => { magia.eixos.cdFixa = +e.target.value; atualizar(false); } })) : null,
+      el("p", { className: "explica", textContent: cd
+        ? `CD 12 é neutra; cada ponto abaixo devolve 0,5 pt (CD 2 = −5, o piso — 1 nunca falha) e cada ponto acima cobra 0,5. Oficiais com CD escrita: Área Escorregadia (Acrobacia CD 10), Armadura Gélida (Reflexos CD 20).`
+        : "sem marcar, vale a CD normal: 10 + metade do nível + atributo-chave — cresce com quem conjura." }),
+    ));
   }
 }
 

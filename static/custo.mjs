@@ -22,6 +22,7 @@ function tierCondicao(nome, tiers) {
   return 2; // condição desconhecida: tier médio
 }
 
+export const semAcento = (x) => (x || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
 const temValor = (x) => Array.isArray(x) ? x.length > 0 : !!x;
 export const ehOfensiva = (m) => !!m.efeitos?.dano || !!m.efeitos?.condicoes?.length ||
   temValor(m.efeitos?.penalidade) || !!m.efeitos?.resistenciaForcada;
@@ -62,6 +63,21 @@ export function calcular(magia, tabela) {
     avisos.push("Resistência só se aplica a magia ofensiva (com dano, condição ou penalidade).");
   }
 
+  // CD fixa: não escala com o nível (a normal é 10 + metade do nível + atributo).
+  // Oficiais com CD escrita na magia: Área Escorregadia 10, Armadura Gélida 20 (padroes-corpus.json).
+  const cdEscrita = Number(eixos.cdFixa) || 0;
+  if (cdEscrita) {
+    const c = t.cd_fixa || {};
+    const cd = Math.min(Math.max(cdEscrita, c.min ?? 2), c.max ?? 30);
+    if (!ofensiva || res === "nenhuma") {
+      avisos.push("CD fixa só faz sentido com teste de resistência — escolha um teste.");
+    } else {
+      partes.cd = (cd - (c.neutra ?? 12)) * (c.por_ponto ?? 0.5);
+      if (partes.cd) avisos.push(`CD fixa ${cd} (a normal cresce: 10 + metade do nível + atributo): ${partes.cd > 0 ? "+" : ""}${partes.cd} pt.`);
+    }
+  }
+
+  let tiposDano = [];
   if (efeitos.dano) {
     partes.dano = custoDados(efeitos.dano, ef.dano_por_dado, ef.dano_fixo_por_ponto);
     // dano com duração = repetível toda rodada (estilo Açoite Flamejante)
@@ -79,12 +95,14 @@ export function calcular(magia, tabela) {
       partes.dano -= desconto;
       avisos.push(`Blast puro: o ${magia.circulo || 1}º círculo desconta ${nBonus} dado(s) do dano (−${desconto} pts).`);
     }
-    // tipo de dano: mundano é mais resistido (-1), luz/trevas +1, psíquico/essência quase nada resiste (+2)
-    const tipoNorm = (efeitos.dano.tipo || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
-    const deltaTipo = ef.custo_tipo_dano?.[tipoNorm] ?? 0;
-    if (deltaTipo) {
-      partes.dano += deltaTipo;
-      avisos.push(`Dano de ${efeitos.dano.tipo}: ${deltaTipo > 0 ? "+" : ""}${deltaTipo} pt (raridade de resistência).`);
+    // tipo de dano: mundano e mais resistido (-1), luz/trevas +1, psiquico/essencia +2.
+    // 2+ tipos = escolhido na hora (Armadura Elemental, Runa de Protecao): paga o mais caro.
+    tiposDano = efeitos.dano.tipos?.length ? efeitos.dano.tipos : [efeitos.dano.tipo].filter(Boolean);
+    const deltas = tiposDano.map((tp) => ef.custo_tipo_dano?.[semAcento(tp)] ?? 0);
+    const delta = deltas.length ? Math.max(...deltas) : 0;
+    if (delta) {
+      partes.dano += delta;
+      avisos.push(`Dano de ${tiposDano.join(" / ")}: ${delta > 0 ? "+" : ""}${delta} pt${tiposDano.length > 1 ? " — a lista paga o tipo mais caro" : " (raridade de resistencia)"}.`);
     }
   }
   if (efeitos.cura) partes.cura = custoDados(efeitos.cura, ef.cura_por_dado, ef.cura_fixa_por_ponto);
@@ -179,13 +197,12 @@ export function calcular(magia, tabela) {
   // nível "bloqueio" = 0 casos nas oficiais e semântica clara; "aviso" = raro/fora do perfil
   const escola = t.escolas?.[magia.escola];
   if (escola && escola.n) {
-    const strip = (x) => (x || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
     if (efeitos.dano) {
       if (escola.dano === "bloqueio") {
         bloqueada = true;
         avisos.push(`${magia.escola} não causa dano em NENHUMA das ${escola.n} oficiais — o perfil é ${escola.perfil}. Troque a escola (ex.: Evocação).`);
-      } else if (escola.tiposDano?.length && !escola.tiposDano.some((td) => strip(td) === strip(efeitos.dano.tipo))) {
-        avisos.push(`${magia.escola} oficial causa dano de ${escola.tiposDano.join("/")} — ${efeitos.dano.tipo} foge do perfil.`);
+      } else if (escola.tiposDano?.length && !escola.tiposDano.some((td) => tiposDano.some((tp) => semAcento(td) === semAcento(tp)))) {
+        avisos.push(`${magia.escola} oficial causa dano de ${escola.tiposDano.join("/")} — ${tiposDano.join("/")} foge do perfil.`);
       } else if (escola.dano === "aviso") {
         avisos.push(`Dano em ${magia.escola} é raríssimo nas oficiais (${escola.dano_n}/${escola.n}).`);
       }

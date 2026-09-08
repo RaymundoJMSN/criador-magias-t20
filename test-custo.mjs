@@ -226,4 +226,34 @@ const nec = (tipo) => calcular({
 }, tabela).avisos.some((a) => a.includes("foge do perfil"));
 assert.ok(nec("fogo") && !nec("trevas"), "perfil de tipo da Necromancia");
 
+// v12 — tipo de dano escolhível na hora: paga o mais caro da lista (Orbe Cromático)
+const orbe = (tipos) => calcular({
+  circulo: 1, escola: "Evocação",
+  eixos: { execucao: "padrao", alcance: "curto", duracao: "instantanea", resistencia: "parcial", teste: "Reflexos", alvo: { tipo: "alvos", qtd: 1 } },
+  efeitos: { dano: { n: 2, faces: 6, fixo: 0, tipo: tipos[0], tipos } },
+}, tabela);
+const soFogo = orbe(["fogo"]).total;
+assert.equal(orbe(["fogo", "frio", "eletricidade"]).total, soFogo, "lista de elementais custa igual a um elemental");
+assert.equal(orbe(["fogo", "frio", "psíquico", "impacto"]).total, soFogo + 2, "lista com psíquico paga o mais caro (+2)");
+assert.equal(orbe(["corte", "impacto"]).total, soFogo - 1, "lista só de mundanos devolve 1");
+assert.ok(orbe(["fogo", "psíquico"]).avisos.some((a) => a.includes("mais caro")), "devia explicar que paga o mais caro");
+
+// v12 — CD fixa: 12 é neutra, cada ponto abaixo devolve 0,5 e acima cobra 0,5
+const comCd = (cdFixa) => calcular({
+  circulo: 1, escola: "Evocação",
+  eixos: { execucao: "padrao", alcance: "curto", duracao: "instantanea", resistencia: "parcial", teste: "Reflexos", cdFixa, alvo: { tipo: "alvos", qtd: 1 } },
+  efeitos: { dano: { n: 2, faces: 6, fixo: 0, tipo: "fogo" } },
+}, tabela);
+assert.equal(comCd(12).total, soFogo, "CD 12 é neutra");
+assert.equal(comCd(10).total, soFogo - 1, "CD 10 devolve 1 (Área Escorregadia)");
+assert.equal(comCd(2).partes.cd, -5, "CD 2 devolve 5 (piso)");
+assert.equal(comCd(2).total, soFogo - 4, "…mas o cap de devolução do 1º círculo corta em 4");
+assert.equal(comCd(1).partes.cd, -5, "CD abaixo do piso não devolve mais");
+assert.equal(comCd(20).total, soFogo + 4, "CD 20 cobra 4 (Armadura Gélida)");
+r = calcular({
+  circulo: 1, eixos: { execucao: "padrao", alcance: "toque", duracao: "cena", resistencia: "nenhuma", cdFixa: 8, alvo: { tipo: "alvos", qtd: 1 } },
+  efeitos: { bonus: [{ valor: 2, em: "Defesa", escopo: "combate" }] },
+}, tabela);
+assert.ok(!r.partes.cd && r.avisos.some((a) => a.includes("CD fixa só faz sentido")), "CD fixa sem teste não devolve ponto");
+
 console.log("custo.mjs OK");

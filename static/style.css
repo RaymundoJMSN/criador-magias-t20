@@ -317,6 +317,11 @@ footer a { color: var(--ouro); }
 .g-filtros .chips { margin: 4px 0; }
 .grimorio-lista { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 10px; margin-top: 10px; }
 .grimorio-lista .card { cursor: grab; position: relative; padding-right: 44px; }
+.g-conta-linha { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+.g-ordem { padding: 4px 8px; font-size: .88rem; }
+.g-grupo { grid-column: 1 / -1; margin: 12px 0 -2px; font-family: "Cinzel", serif; font-size: .95rem;
+  letter-spacing: .1em; color: var(--ouro); border-bottom: 1px solid var(--borda); padding-bottom: 4px; }
+.g-grupo:first-child { margin-top: 0; }
 .grimorio-lista .card:active { cursor: grabbing; }
 .card .circ { position: absolute; top: 8px; right: 10px; font-family: "Cinzel", serif; font-weight: 700;
   font-size: .8rem; color: var(--sangue-vivo); border: 1px solid var(--borda); border-radius: 999px; padding: 2px 7px; }
@@ -347,16 +352,25 @@ footer a { color: var(--ouro); }
 /* mesa: cartas flutuantes sobre qualquer página (janelas da área de trabalho) */
 #mesa { position: fixed; inset: 0; z-index: 30; pointer-events: none; }
 #mesa > * { pointer-events: auto; }
-.quadro-carta { position: fixed; width: min(430px, 92vw); cursor: grab; touch-action: none;
+.quadro-carta { position: fixed; width: min(430px, 92vw); cursor: grab; touch-action: none; padding-right: 14px;
   background: #120809; /* fundo sólido: título não mescla com a carta de trás */
   border: 1px solid var(--borda); border-radius: 12px; padding: 10px 14px 14px;
-  box-shadow: 0 18px 50px rgba(0, 0, 0, .75); }
-.quadro-carta .miolo { cursor: auto; max-height: 55vh; overflow-y: auto; }
+  box-shadow: 0 18px 50px rgba(0, 0, 0, .75);
+  display: flex; flex-direction: column; min-width: 240px; max-width: 96vw; max-height: 92vh;
+  resize: both; overflow: hidden; /* alça nativa de redimensionar no canto inferior direito */ }
+.quadro-carta .miolo { cursor: auto; max-height: 55vh; overflow-y: auto; flex: 1; min-height: 0; }
+.quadro-carta[style*="height"] .miolo { max-height: none; }
+.quadro-carta.q-min { resize: none; height: auto !important; min-height: 0; padding-bottom: 8px; }
+.quadro-carta.q-min .miolo, .quadro-carta.q-min .tipo-linha, .quadro-carta.q-min .to-rodape { display: none; }
+.quadro-carta.q-min h2 { font-size: 1.3rem; padding-right: 60px; text-align: left; }
+.q-botoes { position: absolute; top: 6px; right: 6px; display: flex; gap: 4px; }
+.q-botoes .q-fechar { position: static; }
+.quadro-carta .to-rodape { flex: none; }
 .quadro-carta.q-arrastando { cursor: grabbing; opacity: .92; }
 .quadro-carta.q-pulso { animation: qpulso .5s; }
 .quadro-carta .to-rodape a { color: #f0dc82; }
 @keyframes qpulso { 50% { box-shadow: 0 0 0 4px rgba(240, 220, 130, .6); } }
-.q-fechar { position: absolute; top: -10px; right: -10px; width: 30px; height: 30px;
+.q-fechar { width: 26px; height: 26px;
   border-radius: 999px; border: 1px solid var(--borda); background: #2a1216; color: var(--ouro-claro);
   cursor: pointer; font-size: .9rem; box-shadow: 0 4px 10px rgba(0, 0, 0, .5); }
 .q-fechar:hover { background: var(--sangue); color: #fff; }

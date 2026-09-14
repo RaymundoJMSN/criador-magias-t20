@@ -15,10 +15,28 @@ const ESCOLAS = ["Abjuração", "Adivinhação", "Convocação", "Encantamento",
 const FONTES = [["oficiais", "📕 oficiais"], ["mesa", "🔗 da mesa"]];
 export const chaveDe = (m) => m.fonte === "mesa" ? "p:" + m.id : "o:" + m.slug;
 
-export function montarGrimorio(raiz, { qInicial = "", abrir = null } = {}) {
+const ORDENS = [["circulo", "por círculo"], ["nome", "por nome"], ["escola", "por escola"]];
+// filtros ⇄ URL (?q=fogo&c=1,2&t=Arcana&e=Evocação&f=mesa&ord=nome) — só na página do grimório
+const URL_CHAVES = { circulo: "c", tipo: "t", escola: "e", fonte: "f" };
+
+export function montarGrimorio(raiz, { qInicial = "", abrir = null, naUrl = false } = {}) {
   const mesa = mesaGlobal();
   // filtros multi-seleção (vazio = todos); Arcana e Divina são exclusivas entre si
-  const filtro = { circulo: new Set(), tipo: new Set(), escola: new Set(), fonte: new Set(), q: qInicial };
+  const filtro = { circulo: new Set(), tipo: new Set(), escola: new Set(), fonte: new Set(), q: qInicial, ord: "circulo" };
+  if (naUrl) {
+    const ps = new URLSearchParams(location.search);
+    for (const [k, u] of Object.entries(URL_CHAVES))
+      for (const v of (ps.get(u) || "").split(",").filter(Boolean)) filtro[k].add(k === "circulo" ? +v : v);
+    if (ORDENS.some(([o]) => o === ps.get("ord"))) filtro.ord = ps.get("ord");
+  }
+  function gravarUrl() {
+    if (!naUrl) return;
+    const ps = new URLSearchParams();
+    if (filtro.q.trim()) ps.set("q", filtro.q.trim());
+    for (const [k, u] of Object.entries(URL_CHAVES)) if (filtro[k].size) ps.set(u, [...filtro[k]].join(","));
+    if (filtro.ord !== "circulo") ps.set("ord", filtro.ord);
+    history.replaceState(null, "", location.pathname + (ps.size ? "?" + ps : ""));
+  }
   let TUDO = { oficiais: [], publicadas: [] };
   let buscaTimer;
 
@@ -29,8 +47,10 @@ export function montarGrimorio(raiz, { qInicial = "", abrir = null } = {}) {
   });
   const boxFiltros = el("div", { className: "g-filtros" });
   const conta = el("div", { className: "explica" });
+  const ordem = el("select", { className: "g-ordem", title: "ordenar", onchange: (e) => { filtro.ord = e.target.value; render(); } },
+    ...ORDENS.map(([v, t]) => el("option", { value: v, textContent: t, selected: v === filtro.ord })));
   const lista = el("div", { className: "grimorio-lista" });
-  raiz.append(busca, boxFiltros, conta, lista);
+  raiz.append(busca, boxFiltros, el("div", { className: "g-conta-linha" }, conta, ordem), lista);
 
   const EXCLUSIVOS = { Arcana: "Divina", Divina: "Arcana" }; // não se misturam
   function chips(itens, chave, rotulo = (x) => String(x)) {
@@ -54,6 +74,7 @@ export function montarGrimorio(raiz, { qInicial = "", abrir = null } = {}) {
         },
       });
       botoes.set(valor, b);
+      b.classList.toggle("on", filtro[chave].has(valor));
       box.append(b);
     }
     boxFiltros.append(box);
@@ -65,6 +86,7 @@ export function montarGrimorio(raiz, { qInicial = "", abrir = null } = {}) {
 
   async function buscar() {
     const q = filtro.q.trim();
+    gravarUrl();
     try {
       TUDO = await (await fetch("/api/grimorio" + (q ? `?q=${encodeURIComponent(q)}` : ""))).json();
     } catch { TUDO = { oficiais: [], publicadas: [] }; }
@@ -82,14 +104,23 @@ export function montarGrimorio(raiz, { qInicial = "", abrir = null } = {}) {
     const itens = [
       ...TUDO.publicadas.filter((m) => passa(m, "mesa")).map((m) => ({ ...m, fonte: "mesa" })),
       ...TUDO.oficiais.filter((m) => passa(m, "oficiais")).map((m) => ({ ...m, fonte: "oficiais" })),
-    ].sort((a, b) => a.circulo - b.circulo || a.nome.localeCompare(b.nome));
+    ];
+    const ord = filtro.ord;
+    itens.sort((a, b) => ord === "circulo" ? a.circulo - b.circulo || a.nome.localeCompare(b.nome)
+      : ord === "escola" ? a.escola.localeCompare(b.escola) || a.circulo - b.circulo || a.nome.localeCompare(b.nome)
+      : a.nome.localeCompare(b.nome));
+    gravarUrl();
 
     conta.textContent = `${itens.length} magia${itens.length === 1 ? "" : "s"}`
       + (TUDO.publicadas.length ? ` · ${itens.filter((m) => m.fonte === "mesa").length} da mesa` : "")
       + " · clique ou arraste pra pôr na mesa";
 
     if (!itens.length) return lista.append(el("div", { className: "vazio", textContent: "nenhuma magia com esses filtros." }));
+    let grupo = null;
     for (const m of itens) {
+      // cabeçalho por grupo (círculo ou escola), só quando faz sentido pra ordem escolhida
+      const g = ord === "circulo" ? `${m.circulo}º círculo` : ord === "escola" ? m.escola : null;
+      if (g !== null && g !== grupo) { grupo = g; lista.append(el("h2", { className: "g-grupo", textContent: g })); }
       const chave = chaveDe(m);
       lista.append(el("div", {
         className: "card" + (m.fonte === "mesa" ? " card-mesa" : ""),
@@ -118,9 +149,11 @@ export function montarGrimorio(raiz, { qInicial = "", abrir = null } = {}) {
 const pagina = document.querySelector("#g-pagina");
 if (pagina) {
   const params = new URLSearchParams(location.search);
-  const g = montarGrimorio(pagina, { qInicial: params.get("q") || "", abrir: params.get("abrir") });
+  const g = montarGrimorio(pagina, { qInicial: params.get("q") || "", abrir: params.get("abrir"), naUrl: true });
   const idM = location.pathname.match(/^\/m\/([a-f0-9]+)/)?.[1];
   if (idM) mesaGlobal().abrir("p:" + idM);
+  const slugO = location.pathname.match(/^\/o\/([\w-]+)/)?.[1];
+  if (slugO) mesaGlobal().abrir("o:" + slugO);
   document.addEventListener("keydown", (e) => {
     if (e.key === "/" && !e.target.closest("input, textarea, [contenteditable]")) { e.preventDefault(); g.busca.focus(); g.busca.select(); }
   });

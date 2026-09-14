@@ -6,6 +6,7 @@ import { join, dirname, extname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { randomBytes } from "node:crypto";
 import { calcular } from "./static/custo.mjs";
+import { esc, htmlParaTexto } from "./static/carta.mjs";
 
 const RAIZ = dirname(fileURLToPath(import.meta.url));
 const DADOS = join(RAIZ, "dados");
@@ -164,30 +165,22 @@ async function tratar(req, res) {
 
   // textos oficiais (dados/textos.json fica FORA do repo; sem ele a rota devolve 404)
   if (p.startsWith("/api/texto/") && req.method === "GET") {
-    if (!tratar.textos) {
-      try { tratar.textos = JSON.parse(readFileSync(join(DADOS, "textos.json"), "utf-8")); }
-      catch { tratar.textos = {}; }
-    }
-    const t = tratar.textos[p.slice("/api/texto/".length).replace(/[^\w-]/g, "")];
+    const t = carregarTextos()[p.slice("/api/texto/".length).replace(/[^\w-]/g, "")];
     return t ? json(res, 200, t) : json(res, 404, { erro: "sem texto no servidor" });
   }
 
-  // grimório: lista leve de todas as magias (oficiais + publicadas), com busca opcional no texto
+  // grimório: lista leve de todas as magias (oficiais + publicadas), com busca opcional.
+  // Busca = toda palavra da consulta precisa bater (AND); cada palavra aceita sinônimos (OR)
+  // e procura em nome, descrição, aprimoramentos e stats ("alcance longo", "vontade anula").
   if (p === "/api/grimorio" && req.method === "GET") {
-    if (!tratar.textos) {
-      try { tratar.textos = JSON.parse(readFileSync(join(DADOS, "textos.json"), "utf-8")); }
-      catch { tratar.textos = {}; }
-    }
-    const q = (url.searchParams.get("q") || "").toLowerCase()
-      .normalize("NFD").replace(/[̀-ͯ]/g, "");
-    const norm = (x) => (x || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
-    const bate = (t) => !q || norm(t.nome).includes(q) || norm(t.descricao).includes(q) ||
-      (t.aprimoramentos || []).some((a) => norm(a.texto || a).includes(q));
-    const oficiais = Object.entries(tratar.textos)
-      .filter(([, t]) => bate(t))
+    const textos = carregarTextos();
+    const termos = termosBusca(url.searchParams.get("q"));
+    const bate = (blob) => termos.every((alts) => alts.some((t) => blob.includes(t)));
+    const oficiais = Object.entries(textos)
+      .filter(([, t]) => bate(blobDe(t)))
       .map(([slug, t]) => ({ slug, nome: t.nome, escola: t.escola, grupo: t.grupo, circulo: t.circulo }));
     const publicadas = Object.entries(estado.publicadas)
-      .filter(([, m]) => bate({ nome: m.nome, descricao: m.descricao, aprimoramentos: (m.aprimoramentos || []).map((a) => a.texto) }))
+      .filter(([, m]) => bate(norm([m.nome, htmlParaTexto(m.descricao), m.escola, m.tipo, (m.aprimoramentos || []).map((a) => a.texto).join(" "), JSON.stringify(m.eixos || {})].join(" "))))
       .map(([id, m]) => ({ id, nome: m.nome, escola: m.escola, grupo: m.tipo, circulo: m.circulo || 1, autor: m.autor, pontos: m.pontos }));
     return json(res, 200, { oficiais, publicadas });
   }
@@ -205,12 +198,72 @@ async function tratar(req, res) {
     return json(res, 200, { sugestoes: sugerirAprimoramentos(f, tratar.aprs) });
   }
 
-  // /m/<id>: mesmo grimório, com a magia publicada já aberta na mesa (o id vai pelo pathname)
-  if (p.startsWith("/m/")) return estatico(res, join(RAIZ, "static", "grimorio.html"));
+  // /m/<id> e /o/<slug>: mesmo grimório, com a magia já aberta na mesa (o id vai pelo pathname);
+  // <title> e Open Graph trocados pra o link ficar bonito no WhatsApp/Discord
+  if (p.startsWith("/m/") || p.startsWith("/o/")) {
+    const m = p.startsWith("/m/") ? estado.publicadas[p.slice(3).replace(/[^a-f0-9]/g, "")]
+      : carregarTextos()[p.slice(3).replace(/[^\w-]/g, "")];
+    let html = readFileSync(join(RAIZ, "static", "grimorio.html"), "utf-8");
+    if (m) {
+      const linha = m.linha || `${m.escola} (${m.tipo}) — ${m.circulo || 1}º círculo`;
+      const desc = (linha + ". " + htmlParaTexto(m.descricao || "")).replace(/\s+/g, " ").slice(0, 180);
+      html = html.replace(/<title>.*<\/title>/, `<title>${esc(m.nome)} — Grimório T20</title>`)
+        .replace('<meta name="description"', `<meta property="og:title" content="${esc(m.nome)}"><meta property="og:description" content="${esc(desc)}"><meta property="og:site_name" content="Grimório T20"><meta name="description"`);
+    }
+    res.writeHead(m ? 200 : 404, { "content-type": "text/html; charset=utf-8", "cache-control": "no-cache" });
+    return res.end(html);
+  }
   if (p === "/criar") return estatico(res, join(RAIZ, "static", "index.html"));
   if (p === "/") return estatico(res, join(RAIZ, "static", "grimorio.html"));
   if (p.startsWith("/data/")) return estatico(res, join(RAIZ, "data", p.slice(6).replace(/[^\w.-]/g, "")));
   return estatico(res, join(RAIZ, "static", p.slice(1).replace(/[^\w./-]/g, "").replace(/\.\./g, "")));
+}
+
+// ---- textos oficiais + busca do grimório ----
+function carregarTextos() {
+  if (!carregarTextos.cache) {
+    try { carregarTextos.cache = JSON.parse(readFileSync(join(DADOS, "textos.json"), "utf-8")); }
+    catch { carregarTextos.cache = {}; }
+  }
+  return carregarTextos.cache;
+}
+const norm = (x) => (x || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
+// blob pesquisável por magia oficial, calculado uma vez
+const blobs = new WeakMap();
+function blobDe(t) {
+  if (!blobs.has(t)) blobs.set(t, norm([t.nome, t.linha, t.escola, t.grupo, t.descricao,
+    Object.entries(t.stats || {}).map(([k, v]) => `${k} ${v}`).join(" "),
+    (t.aprimoramentos || []).map((a) => a.texto || a).join(" ")].join(" ")));
+  return blobs.get(t);
+}
+// sinônimos: cada palavra da consulta vira um grupo de alternativas (qualquer uma serve)
+const SINONIMOS = [
+  ["fogo", "chama", "queima", "incendi", "ignea", "igneo"],
+  ["frio", "gelo", "congel", "gelid"],
+  ["eletricidade", "raio", "eletric", "relampago", "choque"],
+  ["acido", "corro"],
+  ["cura", "curar", "recupera pv", "recupera pontos de vida", "regenera"],
+  ["medo", "amedrontado", "apavorado", "assust", "aterroriz"],
+  ["veneno", "envenenado", "toxic"],
+  ["ilusao", "ilusor", "imagem", "invisi"],
+  ["voar", "voo", "levit", "deslocamento de voo"],
+  ["luz", "ilumin", "brilh", "ofuscado", "cego"],
+  ["escuridao", "trevas", "sombra"],
+  ["morto", "morto-vivo", "mortos-vivos", "necro", "zumbi", "esqueleto"],
+  ["invocar", "convoca", "conjura", "criatura convocada"],
+  ["teleport", "teletransport", "deslocar", "viaj"],
+  ["bonus", "+1", "+2", "+5", "recebe +"],
+  ["dormir", "sono", "inconsciente", "adormec"],
+  ["paralis", "imovel", "preso", "enredado", "agarrado"],
+  ["escudo", "protecao", "proteg", "defesa", "abjur"],
+  ["voz", "som", "sonico", "silenc", "surdo"],
+  ["mental", "mente", "vontade", "encant", "fascinado", "enfeiticado"],
+];
+function termosBusca(q) {
+  return norm(q).split(/\s+/).filter(Boolean).map((w) => {
+    const grupo = SINONIMOS.find((g) => g.some((sin) => w.startsWith(sin) || sin.startsWith(w) && w.length >= 4));
+    return grupo ? [...new Set([w, ...grupo])] : [w];
+  });
 }
 
 // ---- ranking de aprimoramentos oficiais contra a magia do usuário ----

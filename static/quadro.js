@@ -18,13 +18,18 @@ export function mesaGlobal() {
   const raiz = el("div", { id: "mesa" });
   const barra = el("div", { className: "mesa-barra", hidden: true },
     el("span", { className: "mesa-conta" }),
-    el("button", { className: "bt mini", textContent: "✕ limpar mesa", onclick: () => { for (const k of [...abertas.keys()]) fechar(k); } }));
+    el("button", { className: "bt mini", textContent: "⊞ alinhar", title: "pôr as cartas lado a lado pra comparar", onclick: () => alinhar() }),
+    el("button", { className: "bt mini", textContent: "✕ limpar", onclick: () => { for (const k of [...abertas.keys()]) fechar(k); } }));
   document.body.append(raiz, barra);
   let z = 10;
   const abertas = new Map();
 
   const salvar = () => {
-    try { localStorage.setItem(LS, JSON.stringify([...abertas].map(([chave, c]) => ({ chave, x: c.offsetLeft, y: c.offsetTop })))); } catch {}
+    try {
+      localStorage.setItem(LS, JSON.stringify([...abertas].map(([chave, c]) => ({
+        chave, x: c.offsetLeft, y: c.offsetTop, w: c.style.width || undefined, h: c.style.height || undefined, min: c.classList.contains("q-min") || undefined,
+      }))));
+    } catch {}
     barra.hidden = !abertas.size;
     barra.querySelector(".mesa-conta").textContent = `${abertas.size} na mesa`;
   };
@@ -41,7 +46,20 @@ export function mesaGlobal() {
     }
     const t = await (await fetch(`/api/texto/${id.replace(/[^\w-]/g, "")}`)).json();
     if (t.erro) throw new Error("sem texto");
-    return cartaOficialHtml(t);
+    return cartaOficialHtml(t) + `<div class="to-rodape"><a href="/o/${id}">🔗 link desta magia</a></div>`;
+  }
+
+  // lado a lado: distribui as cartas abertas em linhas, da esquerda pra direita
+  function alinhar() {
+    let x = 12, y = 60, altura = 0;
+    for (const c of abertas.values()) {
+      c.classList.remove("q-min");
+      const w = c.offsetWidth + 12;
+      if (x + w > innerWidth && x > 12) { x = 12; y += altura + 12; altura = 0; }
+      c.style.left = x + "px"; c.style.top = y + "px";
+      x += w; altura = Math.max(altura, c.offsetHeight);
+    }
+    salvar();
   }
 
   async function abrir(chave, pos) {
@@ -53,7 +71,13 @@ export function mesaGlobal() {
     }
     const carta = el("article", { className: "carta quadro-carta" });
     carta.innerHTML = "<h2>…</h2>";
-    carta.append(el("button", { className: "q-fechar", textContent: "✕", title: "fechar (Esc)", onclick: () => fechar(chave) }));
+    const botoes = el("div", { className: "q-botoes" },
+      el("button", { className: "q-fechar", textContent: "–", title: "minimizar (2 cliques no título restaura)", onclick: () => { carta.classList.toggle("q-min"); if (carta.classList.contains("q-min")) carta.style.height = ""; salvar(); } }),
+      el("button", { className: "q-fechar", textContent: "✕", title: "fechar (Esc)", onclick: () => fechar(chave) }));
+    carta.append(botoes);
+    if (pos?.w) carta.style.width = pos.w;
+    if (pos?.h) carta.style.height = pos.h;
+    if (pos?.min) carta.classList.add("q-min");
     const n = abertas.size;
     const w = Math.min(430, innerWidth * .92);
     carta.style.left = clamp(pos?.x ?? 40 + (n % 5) * 70, innerWidth - w) + "px";
@@ -61,11 +85,13 @@ export function mesaGlobal() {
     carta.style.zIndex = ++z;
 
     // arrastar pelo título (fora do miolo, botões e links)
+    carta.addEventListener("pointerup", () => salvar());
     carta.addEventListener("pointerdown", (e) => {
       carta.style.zIndex = ++z;
       if (e.target.closest(".miolo, button, a")) return;
-      e.preventDefault();
       const r = carta.getBoundingClientRect();
+      if (r.right - e.clientX < 20 && r.bottom - e.clientY < 20) return; // alça de redimensionar (CSS resize)
+      e.preventDefault();
       const dx = e.clientX - r.left, dy = e.clientY - r.top;
       carta.setPointerCapture(e.pointerId);
       carta.classList.add("q-arrastando");
@@ -83,14 +109,14 @@ export function mesaGlobal() {
       carta.addEventListener("pointerup", soltar);
     });
 
+    // 2 cliques no título: restaura tamanho e desminimiza
+    carta.addEventListener("dblclick", (e) => { if (!e.target.closest(".miolo, button, a")) { carta.classList.remove("q-min"); carta.style.width = carta.style.height = ""; salvar(); } });
     raiz.append(carta);
     abertas.set(chave, carta);
     salvar();
     try {
-      const h = await html(chave);
-      const fecharBt = carta.querySelector(".q-fechar");
-      carta.innerHTML = h;
-      carta.append(fecharBt);
+      carta.innerHTML = await html(chave);
+      carta.append(botoes);
     } catch (e) {
       carta.querySelector("h2").textContent = e.message === "despublicada" ? "magia despublicada" : "texto não disponível";
     }
@@ -112,7 +138,7 @@ export function mesaGlobal() {
     fechar(topo[0]);
   });
 
-  try { for (const { chave, x, y } of JSON.parse(localStorage.getItem(LS) || "[]")) abrir(chave, { x, y }); } catch {}
+  try { for (const c of JSON.parse(localStorage.getItem(LS) || "[]")) abrir(c.chave, c); } catch {}
 
   return (mesa = { abrir, fechar, abertas });
 }

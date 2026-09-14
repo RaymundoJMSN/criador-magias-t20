@@ -307,6 +307,12 @@ footer a { color: var(--ouro); }
 .card-nova { border-style: dashed; border-color: rgba(201, 162, 39, .5); background: rgba(201, 162, 39, .04);
   text-align: left; font: inherit; color: inherit; }
 .card-nova h3 { color: var(--ouro); }
+.card-nova .link-ouro:hover { text-decoration: underline; }
+.acoes-card .bt.mini { margin-top: 2px; }
+.chk { display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; margin: 6px 0; color: var(--texto); font-size: .95rem; cursor: pointer; }
+.chk .explica { flex-basis: 100%; margin: 0 0 0 24px !important; }
+.chk input { accent-color: var(--sangue-vivo); width: 16px; height: 16px; }
+#bt-salvar-topo { font-size: .85rem; padding: 8px 12px; }
 #bt-nova-topo { margin-left: 6px; }
 
 /* grimório */

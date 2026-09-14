@@ -175,7 +175,9 @@ function grupoEixo(eixo, aoMudar) {
 function passoBasico(box) {
   box.append(
     el("label", { className: "campo" }, "Nome da magia",
-      el("input", { id: "w-nome", maxLength: 40, value: magia.nome, placeholder: "Lança de Cinzas", oninput: (e) => { magia.nome = e.target.value; atualizar(false); } })),
+      el("input", { id: "w-nome", maxLength: 40, value: magia.nome, placeholder: "Lança de Cinzas", autofocus: true,
+        oninput: (e) => { magia.nome = e.target.value; atualizar(false); },
+        onkeydown: (e) => { if (e.key === "Enter") $("#bt-avancar").click(); } })),
     el("div", { className: "campo-linha" },
       el("label", { className: "campo" }, "Círculo",
         el("select", { onchange: (e) => { magia.circulo = +e.target.value; renderPasso(); atualizar(); } },
@@ -616,6 +618,10 @@ function passoRevisao(box) {
     el("div", { className: "acoes" },
       el("button", { className: "bt destaque", textContent: "salvar", onclick: salvarServidor }),
       el("button", { className: "bt", textContent: "copiar texto", onclick: () => { navigator.clipboard.writeText(textoPlano(magia, r)); aviso("texto copiado"); } }),
+      el("button", { className: "bt", textContent: "baixar .json", title: "backup / levar pra outra mesa", onclick: () => {
+        const a = el("a", { href: URL.createObjectURL(new Blob([JSON.stringify(magia, null, 2)], { type: "application/json" })), download: `${magia.nome || "magia"}.json` });
+        a.click(); URL.revokeObjectURL(a.href);
+      } }),
       ...(estaPublicada()
         ? [el("button", { className: "bt", textContent: "🔗 compartilhar", onclick: () => { navigator.clipboard.writeText(linkDaMagia()); aviso("link copiado: " + linkDaMagia()); } }),
            el("button", { className: "bt", textContent: "despublicar", onclick: despublicar })]
@@ -838,6 +844,14 @@ function atualizar(rerender = true) {
     .map(([k, v]) => el("li", { textContent: `${k}: ${v > 0 ? "+" + v : v}` })));
   $("#carta").innerHTML = cartaHtml(magia, r);
   localStorage.setItem(chaveRascunho(), JSON.stringify(magia));
+  document.title = (magia.nome ? magia.nome + " — " : "") + "Criador de Magias T20";
+  // salvar no topo: aparece quando há nome e usuário; marca ● se difere do que está no servidor
+  const salva = minhas.find((x) => x.id === magia.id);
+  const sujo = !salva || JSON.stringify(salva) !== JSON.stringify(magia);
+  const bs = $("#bt-salvar-topo");
+  bs.hidden = !magia.nome;
+  bs.textContent = sujo ? "● salvar" : "💾 salvo";
+  bs.classList.toggle("destaque", sujo && !!user);
   if (rerender) renderProgresso();
   return r;
 }
@@ -882,11 +896,13 @@ async function sincronizar() {
     if (ganhouId) await fetch(`/api/user/${encodeURIComponent(user)}`, { method: "PUT", body: JSON.stringify({ magias: minhas }) });
     window.__publicadas = st.publicadas;
     abrirAba(abaAtiva);
+    atualizar(false); // botão "salvo/● salvar" compara com a lista que acabou de chegar
   } catch {}
 }
 
 async function salvarServidor() {
   if (!user) return aviso("entre com seu nome (lá em cima) pra salvar", true);
+  if (!magia.nome.trim()) return aviso("dê um nome à magia antes de salvar", true);
   const r = atualizar(false);
   const i = minhas.findIndex((x) => x.id === magia.id);
   if (i >= 0) minhas[i] = magia; else minhas.push(magia);
@@ -924,6 +940,18 @@ async function despublicar() {
   else aviso(j.erro, true);
 }
 
+// cópia sua de uma magia (minha, publicada de outro, ou importada): id novo, sem autor, vai pro editor
+function duplicar(m, sufixo = true) {
+  const naoSalva = magia.nome && !minhas.some((x) => x.id === magia.id);
+  if (naoSalva && !confirm(`"${magia.nome}" não foi salva e será descartada. Continuar?`)) return;
+  const { autor, publicadaEm, ...resto } = JSON.parse(JSON.stringify(m));
+  magia = { ...novaMagia(), ...resto, id: idNovo(), nome: sufixo ? `${m.nome || "Sem Nome"} (cópia)` : m.nome || "" };
+  passoAtual = 0;
+  renderPasso(); atualizar();
+  scrollTo({ top: 0, behavior: "smooth" });
+  aviso("cópia aberta no editor — salve pra ficar sua");
+}
+
 let abaAtiva = "minhas";
 const mesa = mesaGlobal();
 function abrirAba(aba) {
@@ -936,7 +964,15 @@ function abrirAba(aba) {
   if (aba === "minhas") {
     g.append(el("button", { className: "card card-nova", onclick: comecarNova },
       el("h3", { textContent: "✦ criar nova magia" }),
-      el("div", { className: "meta", textContent: "começa do zero, passo a passo" })));
+      el("div", { className: "meta", textContent: "começa do zero, passo a passo" }),
+      el("span", { className: "link-ouro", style: "font-size:.8rem", textContent: "ou importar um .json", onclick: (ev) => {
+        ev.stopPropagation();
+        const inp = el("input", { type: "file", accept: ".json,application/json", onchange: async () => {
+          try { const m = JSON.parse(await inp.files[0].text()); if (!m?.eixos) throw 0; duplicar(m, false); }
+          catch { aviso("esse arquivo não é uma magia do criador", true); }
+        } });
+        inp.click();
+      } })));
     if (!minhas.length) return g.append(el("div", { className: "vazio", textContent: user ? "nenhuma magia salva ainda" : "entre com seu nome pra ver suas magias" }));
     const pubIds = new Set((window.__publicadas || []).filter((p2) => normNome(p2.autor) === normNome(user)).map((p2) => p2.id));
     for (const m of minhas) {
@@ -946,7 +982,15 @@ function abrirAba(aba) {
         el("span", { className: "custo", textContent: `${r.total}pt` }),
         el("div", { className: "meta", textContent: `${m.escola} · ${m.tipo}` + (pubIds.has(m.id) ? " · 🔗 publicada" : "") }),
         el("div", { className: "acoes-card" },
-          el("button", { className: "bt mini", textContent: "apagar", onclick: async (ev) => { ev.stopPropagation(); minhas = minhas.filter((x) => x !== m); if (user) await fetch(`/api/user/${encodeURIComponent(user)}`, { method: "PUT", body: JSON.stringify({ magias: minhas }) }); abrirAba("minhas"); } })));
+          el("button", { className: "bt mini", textContent: "duplicar", onclick: (ev) => { ev.stopPropagation(); duplicar(m); } }),
+          " ",
+          el("button", { className: "bt mini", textContent: "apagar", onclick: async (ev) => {
+            ev.stopPropagation();
+            if (!confirm(`Apagar "${m.nome || "Sem Nome"}"?` + (pubIds.has(m.id) ? " Ela está publicada — o link vai parar de funcionar." : ""))) return;
+            minhas = minhas.filter((x) => x !== m);
+            if (user) await fetch(`/api/user/${encodeURIComponent(user)}`, { method: "PUT", body: JSON.stringify({ magias: minhas }) });
+            abrirAba("minhas");
+          } })));
     }
   } else if (aba === "publicadas") {
     const pubs = window.__publicadas || [];
@@ -955,7 +999,9 @@ function abrirAba(aba) {
       add({ onclick: () => mesa.abrir("p:" + m.id), draggable: true, ondragstart: (e) => e.dataTransfer.setData(TIPO_ARRASTO, "p:" + m.id) },
         el("h3", { textContent: m.nome }),
         el("span", { className: "custo", textContent: `${m.pontos?.gasto}pt` }),
-        el("div", { className: "meta", textContent: `${m.escola} · por ${m.autor}` }));
+        el("div", { className: "meta", textContent: `${m.escola} · por ${m.autor}` }),
+        el("div", { className: "acoes-card" },
+          el("button", { className: "bt mini", textContent: "usar como base", title: "vira uma cópia sua pra editar", onclick: (ev) => { ev.stopPropagation(); duplicar(m); } })));
     }
   } else {
     g.append(el("div", { className: "vazio", textContent: "As 101 magias oficiais de 1º círculo reconstruídas. Clique pra ler o texto oficial e comparar; nas de efeito especial dá pra usar o preço como referência." + ((magia.circulo || 1) > 1 ? " (Sua magia é de " + magia.circulo + "º círculo — escale o preço proporcionalmente ao orçamento.)" : "") }));
@@ -963,31 +1009,13 @@ function abrirAba(aba) {
       ...EXEMPLOS.utilitarias.map((ex) => ({ ...ex, badge: `efeito ≈ ${ex.preco_efeito}pt` })),
       ...EXEMPLOS.numericas.map((ex) => ({ ...ex, badge: `total ${ex.total}pt` })),
     ].sort((a, b) => a.nome.localeCompare(b.nome));
-    for (const ex of todas) add({ onclick: (ev) => expandirReferencia(ev.currentTarget, ex) },
+    for (const ex of todas) add({ onclick: () => mesa.abrir("o:" + ex.slug), draggable: true, ondragstart: (e) => e.dataTransfer.setData(TIPO_ARRASTO, "o:" + ex.slug), title: "clique ou arraste pra ler na mesa" },
       el("h3", { textContent: ex.nome }),
       el("span", { className: "custo", textContent: ex.badge }),
-      el("div", { className: "meta", textContent: `${ex.escola} · ${ex.grupo}` }));
+      el("div", { className: "meta", textContent: `${ex.escola} · ${ex.grupo}` }),
+      ex.preco_efeito != null ? el("div", { className: "acoes-card" },
+        el("button", { className: "bt mini", textContent: `usar como referência (${ex.preco_efeito}pt)`, onclick: (ev) => { ev.stopPropagation(); usarReferencia(ex); } })) : null);
   }
-}
-
-async function expandirReferencia(card, ex) {
-  const aberto = card.querySelector(".texto-oficial");
-  if (aberto) return aberto.remove();
-  document.querySelectorAll(".texto-oficial").forEach((n) => n.remove());
-  const box = el("div", { className: "texto-oficial", onclick: (e) => e.stopPropagation() }, "carregando…");
-  card.append(box);
-  try {
-    const t = await (await fetch(`/api/texto/${ex.slug}`)).json();
-    if (t.erro) { box.textContent = "texto não disponível neste servidor"; return; }
-    const carta = el("article", { className: "carta carta-mini", onclick: (e) => e.stopPropagation() });
-    carta.innerHTML = cartaOficialHtml(t);
-    if (ex.preco_efeito != null) carta.append(el("div", { className: "to-rodape" },
-      el("button", {
-        className: "bt mini", textContent: `usar como referência (${ex.preco_efeito}pt)`,
-        onclick: (e) => { e.stopPropagation(); usarReferencia(ex); },
-      })));
-    box.replaceWith(carta);
-  } catch { box.textContent = "erro ao carregar"; }
 }
 
 function usarReferencia(ex) {
@@ -1014,6 +1042,8 @@ async function boot() {
   $("#bt-entrar").onclick = () => { const n = $("#nome-user").value.trim(); if (n) { user = n; localStorage.setItem("cm_user", n); entrou(); } };
   $("#bt-sair").onclick = () => { user = ""; localStorage.removeItem("cm_user"); location.reload(); };
   $("#bt-nova-topo").onclick = comecarNova;
+  $("#bt-salvar-topo").onclick = salvarServidor;
+  document.addEventListener("keydown", (e) => { if ((e.ctrlKey || e.metaKey) && e.key === "s") { e.preventDefault(); salvarServidor(); } });
 
   // gaveta do grimório: consultar outras magias durante a criação
   const btG = el("button", { className: "bt bt-grimorio", title: "consultar o grimório", textContent: "📖" });

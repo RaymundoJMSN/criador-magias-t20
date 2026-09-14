@@ -1,4 +1,5 @@
 // Criador de Magias T20 — wizard passo a passo. Vanilla, sem build.
+import { mesaGlobal, TIPO_ARRASTO } from "/quadro.js";
 import { calcular, circuloEfetivo, ehOfensiva, tarifaDoTexto, semAcento } from "/custo.mjs";
 import { ROTULOS, RESTRITO_SINGULAR, FORMAS, esc, sanitizarHtml, htmlParaTexto,
          textoDano, textoCura, textoBonus, textoCond, textoAlvo, textoResistencia,
@@ -924,6 +925,7 @@ async function despublicar() {
 }
 
 let abaAtiva = "minhas";
+const mesa = mesaGlobal();
 function abrirAba(aba) {
   abaAtiva = aba;
   document.querySelectorAll(".aba").forEach((b) => b.classList.toggle("ativa", b.dataset.aba === aba));
@@ -950,7 +952,7 @@ function abrirAba(aba) {
     const pubs = window.__publicadas || [];
     if (!pubs.length) return g.append(el("div", { className: "vazio", textContent: "ninguém publicou nada ainda" }));
     for (const m of pubs) {
-      add({ onclick: () => { location.href = `/m/${m.id}`; } },
+      add({ onclick: () => mesa.abrir("p:" + m.id), draggable: true, ondragstart: (e) => e.dataTransfer.setData(TIPO_ARRASTO, "p:" + m.id) },
         el("h3", { textContent: m.nome }),
         el("span", { className: "custo", textContent: `${m.pontos?.gasto}pt` }),
         el("div", { className: "meta", textContent: `${m.escola} · por ${m.autor}` }));
@@ -1019,7 +1021,7 @@ async function boot() {
     el("div", { className: "gaveta-cab" },
       el("b", {}, "📖 Grimório"),
       el("span", {},
-        el("a", { className: "link-ouro", href: "/grimorio", textContent: "página completa", style: "margin-right:10px;font-size:.85rem" }),
+        el("a", { className: "link-ouro", href: "/", textContent: "página completa", style: "margin-right:10px;font-size:.85rem" }),
         el("button", { className: "bt mini", textContent: "✕ fechar", onclick: () => gaveta.classList.remove("aberta") }))),
     el("div", { className: "gaveta-corpo" }));
   document.body.append(btG, gaveta);
@@ -1029,7 +1031,7 @@ async function boot() {
     if (!gavetaPronta) {
       gavetaPronta = true;
       const { montarGrimorio } = await import("/grimorio.js");
-      montarGrimorio(gaveta.querySelector(".gaveta-corpo"), { compacto: true });
+      montarGrimorio(gaveta.querySelector(".gaveta-corpo"));
     }
   };
   document.querySelectorAll(".aba").forEach((b) => (b.onclick = () => abrirAba(b.dataset.aba)));

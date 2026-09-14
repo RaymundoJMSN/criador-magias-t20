@@ -1,6 +1,7 @@
 // Grimório: pesquisa e filtros sobre as oficiais + publicadas da mesa.
-// Componente reutilizável: página /grimorio, gaveta lateral do criador e painel do /m/.
-import { cartaHtml, cartaOficialHtml } from "/carta.mjs";
+// Componente reutilizável: página / (grimório), gaveta lateral do criador.
+// Clicar ou arrastar uma magia põe a carta na mesa (quadro.js), em qualquer página.
+import { mesaGlobal, TIPO_ARRASTO } from "/quadro.js";
 
 const el = (tag, props = {}, ...filhos) => {
   const n = Object.assign(document.createElement(tag), props);
@@ -12,8 +13,10 @@ const CIRCULOS = [1, 2, 3, 4, 5];
 const TIPOS = ["Arcana", "Divina", "Universal"];
 const ESCOLAS = ["Abjuração", "Adivinhação", "Convocação", "Encantamento", "Evocação", "Ilusão", "Necromancia", "Transmutação"];
 const FONTES = [["oficiais", "📕 oficiais"], ["mesa", "🔗 da mesa"]];
+export const chaveDe = (m) => m.fonte === "mesa" ? "p:" + m.id : "o:" + m.slug;
 
-export function montarGrimorio(raiz, { compacto = false, qInicial = "", abrir = null, aoEscolher = null } = {}) {
+export function montarGrimorio(raiz, { qInicial = "", abrir = null } = {}) {
+  const mesa = mesaGlobal();
   // filtros multi-seleção (vazio = todos); Arcana e Divina são exclusivas entre si
   const filtro = { circulo: new Set(), tipo: new Set(), escola: new Set(), fonte: new Set(), q: qInicial };
   let TUDO = { oficiais: [], publicadas: [] };
@@ -82,59 +85,43 @@ export function montarGrimorio(raiz, { compacto = false, qInicial = "", abrir = 
     ].sort((a, b) => a.circulo - b.circulo || a.nome.localeCompare(b.nome));
 
     conta.textContent = `${itens.length} magia${itens.length === 1 ? "" : "s"}`
-      + (TUDO.publicadas.length ? ` · ${itens.filter((m) => m.fonte === "mesa").length} da mesa` : "");
+      + (TUDO.publicadas.length ? ` · ${itens.filter((m) => m.fonte === "mesa").length} da mesa` : "")
+      + " · clique ou arraste pra pôr na mesa";
 
     if (!itens.length) return lista.append(el("div", { className: "vazio", textContent: "nenhuma magia com esses filtros." }));
     for (const m of itens) {
+      const chave = chaveDe(m);
       lista.append(el("div", {
         className: "card" + (m.fonte === "mesa" ? " card-mesa" : ""),
-        onclick: (ev) => aoEscolher ? aoEscolher(m) : expandir(ev.currentTarget, m),
+        draggable: true, title: "clique ou arraste pra pôr na mesa",
+        onclick: () => mesa.abrir(chave),
+        ondragstart: (e) => { e.dataTransfer.setData(TIPO_ARRASTO, chave); e.dataTransfer.effectAllowed = "copy"; },
       },
+        el("span", { className: "circ", textContent: `${m.circulo}º` }),
         el("h3", { textContent: m.nome }),
-        el("div", { className: "meta", textContent: `${m.circulo}º · ${m.escola} · ${m.grupo}` + (m.autor ? ` · por ${m.autor}` : "") }),
+        el("div", { className: "meta", textContent: `${m.escola} · ${m.grupo}` + (m.autor ? ` · por ${m.autor}` : "") }),
       ));
     }
   }
 
-  async function expandir(card, m) {
-    const aberto = card.querySelector(".texto-oficial, .carta");
-    if (aberto) return aberto.remove();
-    lista.querySelectorAll(".texto-oficial, .carta").forEach((n) => n.remove());
-    const box = el("div", { className: "texto-oficial", onclick: (e) => e.stopPropagation() }, "carregando…");
-    card.append(box);
-    try {
-      if (m.fonte === "mesa") {
-        const dados = await (await fetch(`/api/magia/${m.id}`)).json();
-        if (dados.erro) { box.textContent = "essa magia foi despublicada."; return; }
-        const carta = el("article", { className: "carta carta-mini", onclick: (e) => e.stopPropagation() });
-        carta.innerHTML = cartaHtml(dados, { total: dados.pontos?.gasto ?? "?", orcamento: dados.pontos?.orcamento ?? 10, valido: true });
-        carta.append(el("div", { className: "to-rodape" },
-          el("a", { href: `/m/${m.id}`, textContent: "🔗 abrir página da magia" })));
-        box.replaceWith(carta);
-      } else {
-        const t = await (await fetch(`/api/texto/${m.slug}`)).json();
-        if (t.erro) { box.textContent = "texto não disponível neste servidor."; return; }
-        const carta = el("article", { className: "carta carta-mini", onclick: (e) => e.stopPropagation() });
-        carta.innerHTML = cartaOficialHtml(t);
-        box.replaceWith(carta);
-      }
-      card.scrollIntoView({ behavior: "smooth", block: "nearest" });
-    } catch { box.textContent = "erro ao carregar."; }
-  }
-
   buscar().then(() => {
     if (abrir) {
-      const alvo = [...lista.querySelectorAll(".card")]
-        .find((c) => c.querySelector("h3").textContent === abrir);
-      alvo?.click();
-      alvo?.scrollIntoView({ block: "center" });
+      const m = [...TUDO.publicadas.map((x) => ({ ...x, fonte: "mesa" })), ...TUDO.oficiais.map((x) => ({ ...x, fonte: "oficiais" }))]
+        .find((x) => x.nome === abrir);
+      if (m) mesa.abrir(chaveDe(m));
     }
   });
+  return { buscar, busca };
 }
 
-// bootstrap automático da página /grimorio (container #g-pagina)
+// bootstrap automático da página / (container #g-pagina); /m/<id> abre a publicada na mesa
 const pagina = document.querySelector("#g-pagina");
 if (pagina) {
   const params = new URLSearchParams(location.search);
-  montarGrimorio(pagina, { qInicial: params.get("q") || "", abrir: params.get("abrir") });
+  const g = montarGrimorio(pagina, { qInicial: params.get("q") || "", abrir: params.get("abrir") });
+  const idM = location.pathname.match(/^\/m\/([a-f0-9]+)/)?.[1];
+  if (idM) mesaGlobal().abrir("p:" + idM);
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "/" && !e.target.closest("input, textarea, [contenteditable]")) { e.preventDefault(); g.busca.focus(); g.busca.select(); }
+  });
 }

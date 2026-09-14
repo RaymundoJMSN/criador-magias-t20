@@ -6,7 +6,6 @@ import { join, dirname, extname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { randomBytes } from "node:crypto";
 import { calcular } from "./static/custo.mjs";
-import { cartaHtml, esc } from "./static/carta.mjs";
 
 const RAIZ = dirname(fileURLToPath(import.meta.url));
 const DADOS = join(RAIZ, "dados");
@@ -206,45 +205,10 @@ async function tratar(req, res) {
     return json(res, 200, { sugestoes: sugerirAprimoramentos(f, tratar.aprs) });
   }
 
-  if (p.startsWith("/m/")) {
-    const idPedido = p.slice(3).replace(/[^a-f0-9]/g, "");
-    const m = estado.publicadas[idPedido];
-    const pagina = `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>${m ? esc(m.nome) : "Quadro de magias"} — Criador de Magias T20</title>
-<link rel="stylesheet" href="/style.css">
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🕯️</text></svg>">
-</head><body class="pagina-quadro"><div class="brasa" aria-hidden="true"></div>
-<div class="quadro-topo">
-  <b>Quadro de magias</b>
-  <span class="explica">arraste as cartas pelo título · clique numa magia do grimório pra abrir no quadro</span>
-  <span><a class="link-ouro" href="/">✦ criar magia</a> · <a class="link-ouro" href="/grimorio">📖 grimório</a></span>
-</div>
-<div id="quadro" class="quadro">${m ? "" : `<p class="nao-achei">Essa magia não existe mais — pode ter sido despublicada. Use o grimório 📖 pra abrir outras.</p>`}</div>
-<button class="bt bt-grimorio" id="q-abrir-grimorio" title="grimório">📖</button>
-<aside class="gaveta" id="q-gaveta">
-  <div class="gaveta-cab"><b>📖 Grimório</b>
-    <button class="bt mini" id="q-fechar-gaveta">✕ fechar</button></div>
-  <div class="gaveta-corpo"></div>
-</aside>
-<script type="module">
-  import { montarQuadro } from "/quadro.js";
-  import { montarGrimorio } from "/grimorio.js";
-  const quadro = montarQuadro(document.querySelector("#quadro"));
-  const gaveta = document.querySelector("#q-gaveta");
-  document.querySelector("#q-abrir-grimorio").onclick = () => gaveta.classList.toggle("aberta");
-  document.querySelector("#q-fechar-gaveta").onclick = () => gaveta.classList.remove("aberta");
-  montarGrimorio(gaveta.querySelector(".gaveta-corpo"), {
-    compacto: true,
-    aoEscolher: (m) => m.fonte === "mesa" ? quadro.abrirPublicada(m.id) : quadro.abrirOficial(m.slug),
-  });
-  ${m ? `quadro.abrirPublicada(${JSON.stringify(idPedido)});` : ""}
-</script>
-</body></html>`;
-    res.writeHead(m ? 200 : 404, { "content-type": "text/html; charset=utf-8" });
-    return res.end(pagina);
-  }
-  if (p === "/") return estatico(res, join(RAIZ, "static", "index.html"));
+  // /m/<id>: mesmo grimório, com a magia publicada já aberta na mesa (o id vai pelo pathname)
+  if (p.startsWith("/m/")) return estatico(res, join(RAIZ, "static", "grimorio.html"));
+  if (p === "/criar") return estatico(res, join(RAIZ, "static", "index.html"));
+  if (p === "/") return estatico(res, join(RAIZ, "static", "grimorio.html"));
   if (p.startsWith("/data/")) return estatico(res, join(RAIZ, "data", p.slice(6).replace(/[^\w.-]/g, "")));
   return estatico(res, join(RAIZ, "static", p.slice(1).replace(/[^\w./-]/g, "").replace(/\.\./g, "")));
 }
@@ -324,7 +288,8 @@ if (CHECK) {
       if (c3.status !== 200) return falha("devia aceitar 3º círculo: " + (await c3.json()).erro);
       const idx = await fetch(`${base}/m/${pub.id}`);
       const pagina = await idx.text();
-      if (idx.status !== 200 || !pagina.includes("Teste")) return falha("/m/ não rendeu a magia");
+      if (idx.status !== 200 || !pagina.includes("g-pagina")) return falha("/m/ não serviu o grimório");
+      if ((await fetch(`${base}/`)).status !== 200 || (await fetch(`${base}/criar`)).status !== 200) return falha("/ ou /criar fora");
       // republicar com o mesmo id NÃO duplica
       const pub2 = await (await fetch(`${base}/api/publicar`, { method: "POST", body: JSON.stringify({ autor: "ray", magia: { ...magia, id: pub.id } }) })).json();
       if (pub2.id !== pub.id) return falha("republicar mudou o id");

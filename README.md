@@ -43,7 +43,7 @@ pertence à Jambo Editora; este projeto é uma ferramenta de fã, sem conteúdo 
 ## Rodar
 
 ```
-node server.mjs             # http://localhost:8070
+node server.mjs             # http://localhost:8070 (grimório; criador em /criar)
 node server.mjs --check     # self-test
 node test-custo.mjs         # motor de custo
 node test-oficiais.mjs      # 28 oficiais recriadas à mão, com a faixa esperada

@@ -1,6 +1,8 @@
 // Grimório: pesquisa e filtros sobre as oficiais + publicadas da mesa.
+// Duas abas com o MESMO mecanismo de busca: magias e poderes (oficiais, de
+// todos os livros — vêm de /api/poderes).
 // Componente reutilizável: página / (grimório), gaveta lateral do criador.
-// Clicar ou arrastar uma magia põe a carta na mesa (quadro.js), em qualquer página.
+// Clicar ou arrastar põe a carta na mesa (quadro.js), em qualquer página.
 import { mesaGlobal, TIPO_ARRASTO } from "/quadro.js";
 
 const el = (tag, props = {}, ...filhos) => {
@@ -13,44 +15,76 @@ const CIRCULOS = [1, 2, 3, 4, 5];
 const TIPOS = ["Arcana", "Divina", "Universal"];
 const ESCOLAS = ["Abjuração", "Adivinhação", "Convocação", "Encantamento", "Evocação", "Ilusão", "Necromancia", "Transmutação"];
 const FONTES = [["oficiais", "📕 oficiais"], ["mesa", "🔗 da mesa"]];
-export const chaveDe = (m) => m.fonte === "mesa" ? "p:" + m.id : "o:" + m.slug;
+// poderes: categorias e livros vêm do minerador (tools/minerar-poderes.mjs)
+const CATEGORIAS = ["Combate", "Destino", "Magia", "Tormenta", "Geral", "Grupo", "Classe", "Habilidade", "Racial", "Origem", "Concedido", "Distinção"];
+const LIVROS = ["Livro Básico", "Heróis de Arton", "Dragão Brasil", "Distinções", "Deuses de Arton", "Guia de NPCs"];
 
-const ORDENS = [["circulo", "por círculo"], ["nome", "por nome"], ["escola", "por escola"]];
-// filtros ⇄ URL (?q=fogo&c=1,2&t=Arcana&e=Evocação&f=mesa&ord=nome) — só na página do grimório
-const URL_CHAVES = { circulo: "c", tipo: "t", escola: "e", fonte: "f" };
+export const chaveDe = (m) => m.fonte === "mesa" ? "p:" + m.id : m.fonte === "poder" ? "d:" + m.slug : "o:" + m.slug;
 
-export function montarGrimorio(raiz, { qInicial = "", abrir = null, naUrl = false } = {}) {
+const ABAS = [["magias", "📕 magias"], ["poderes", "⚔ poderes"]];
+const ORDENS = {
+  magias: [["circulo", "por círculo"], ["nome", "por nome"], ["escola", "por escola"]],
+  poderes: [["categoria", "por categoria"], ["nome", "por nome"], ["livro", "por livro"]],
+};
+const PADRAO_ORD = { magias: "circulo", poderes: "categoria" };
+// filtros ⇄ URL (?aba=poderes&q=fogo&c=1,2&t=Arcana&e=Evocação&f=mesa&cat=Combate&liv=…&ord=nome)
+const URL_CHAVES = { circulo: "c", tipo: "t", escola: "e", fonte: "f", categoria: "cat", livro: "liv" };
+
+export function montarGrimorio(raiz, { qInicial = "", abrir = null, naUrl = false, aba = "magias" } = {}) {
   const mesa = mesaGlobal();
   // filtros multi-seleção (vazio = todos); Arcana e Divina são exclusivas entre si
-  const filtro = { circulo: new Set(), tipo: new Set(), escola: new Set(), fonte: new Set(), q: qInicial, ord: "circulo" };
+  const filtro = { circulo: new Set(), tipo: new Set(), escola: new Set(), fonte: new Set(), categoria: new Set(), livro: new Set(), q: qInicial, ord: PADRAO_ORD[aba], aba };
   if (naUrl) {
     const ps = new URLSearchParams(location.search);
+    if (ABAS.some(([a]) => a === ps.get("aba"))) filtro.aba = ps.get("aba");
     for (const [k, u] of Object.entries(URL_CHAVES))
       for (const v of (ps.get(u) || "").split(",").filter(Boolean)) filtro[k].add(k === "circulo" ? +v : v);
-    if (ORDENS.some(([o]) => o === ps.get("ord"))) filtro.ord = ps.get("ord");
+    if (ORDENS[filtro.aba].some(([o]) => o === ps.get("ord"))) filtro.ord = ps.get("ord");
   }
   function gravarUrl() {
     if (!naUrl) return;
     const ps = new URLSearchParams();
+    if (filtro.aba !== "magias") ps.set("aba", filtro.aba);
     if (filtro.q.trim()) ps.set("q", filtro.q.trim());
     for (const [k, u] of Object.entries(URL_CHAVES)) if (filtro[k].size) ps.set(u, [...filtro[k]].join(","));
-    if (filtro.ord !== "circulo") ps.set("ord", filtro.ord);
+    if (filtro.ord !== PADRAO_ORD[filtro.aba]) ps.set("ord", filtro.ord);
     history.replaceState(null, "", location.pathname + (ps.size ? "?" + ps : ""));
   }
-  let TUDO = { oficiais: [], publicadas: [] };
+  let TUDO = { oficiais: [], publicadas: [], poderes: [] };
   let buscaTimer;
 
   const busca = el("input", {
     type: "search", className: "g-busca", value: qInicial, autocomplete: "off",
-    placeholder: "pesquisar por nome ou texto… (fogo, medo, cura)",
     oninput: (e) => { filtro.q = e.target.value; clearTimeout(buscaTimer); buscaTimer = setTimeout(buscar, 300); },
   });
+  const barraAbas = el("div", { className: "g-abas" });
   const boxFiltros = el("div", { className: "g-filtros" });
   const conta = el("div", { className: "explica" });
-  const ordem = el("select", { className: "g-ordem", title: "ordenar", onchange: (e) => { filtro.ord = e.target.value; render(); } },
-    ...ORDENS.map(([v, t]) => el("option", { value: v, textContent: t, selected: v === filtro.ord })));
+  const ordem = el("select", { className: "g-ordem", title: "ordenar", onchange: (e) => { filtro.ord = e.target.value; render(); } });
   const lista = el("div", { className: "grimorio-lista" });
-  raiz.append(busca, boxFiltros, el("div", { className: "g-conta-linha" }, conta, ordem), lista);
+  raiz.append(barraAbas, busca, boxFiltros, el("div", { className: "g-conta-linha" }, conta, ordem), lista);
+
+  for (const [valor, rotulo] of ABAS) {
+    const b = el("button", {
+      type: "button", className: "chip g-aba", textContent: rotulo,
+      onclick: () => { if (filtro.aba !== valor) trocarAba(valor); },
+    });
+    b.dataset.aba = valor;
+    barraAbas.append(b);
+  }
+
+  function trocarAba(valor) {
+    filtro.aba = valor;
+    // "por nome" existe nas duas abas e sobrevive à troca (e ao ?ord= da URL); o resto volta ao padrão
+    if (!ORDENS[valor].some(([o]) => o === filtro.ord)) filtro.ord = PADRAO_ORD[valor];
+    for (const b of barraAbas.children) b.classList.toggle("on", b.dataset.aba === valor);
+    busca.placeholder = valor === "magias"
+      ? "pesquisar por nome ou texto… (fogo, medo, cura)"
+      : "pesquisar por nome ou texto… (fúria, bárbaro, +2 na Defesa)";
+    ordem.replaceChildren(...ORDENS[valor].map(([v, t]) => el("option", { value: v, textContent: t, selected: v === filtro.ord })));
+    montarChips();
+    return buscar();
+  }
 
   const EXCLUSIVOS = { Arcana: "Divina", Divina: "Arcana" }; // não se misturam
   function chips(itens, chave, rotulo = (x) => String(x)) {
@@ -79,17 +113,28 @@ export function montarGrimorio(raiz, { qInicial = "", abrir = null, naUrl = fals
     }
     boxFiltros.append(box);
   }
-  chips(CIRCULOS, "circulo", (c) => `${c}º`);
-  chips(TIPOS, "tipo");
-  chips(ESCOLAS, "escola");
-  chips(FONTES, "fonte");
+  function montarChips() {
+    boxFiltros.replaceChildren();
+    if (filtro.aba === "magias") {
+      chips(CIRCULOS, "circulo", (c) => `${c}º`);
+      chips(TIPOS, "tipo");
+      chips(ESCOLAS, "escola");
+      chips(FONTES, "fonte");
+    } else {
+      chips(CATEGORIAS, "categoria");
+      chips(LIVROS, "livro");
+    }
+  }
 
   async function buscar() {
     const q = filtro.q.trim();
+    const qs = q ? `?q=${encodeURIComponent(q)}` : "";
     gravarUrl();
     try {
-      TUDO = await (await fetch("/api/grimorio" + (q ? `?q=${encodeURIComponent(q)}` : ""))).json();
-    } catch { TUDO = { oficiais: [], publicadas: [] }; }
+      TUDO = filtro.aba === "magias"
+        ? { ...await (await fetch("/api/grimorio" + qs)).json(), poderes: [] }
+        : { oficiais: [], publicadas: [], ...await (await fetch("/api/poderes" + qs)).json() };
+    } catch { TUDO = { oficiais: [], publicadas: [], poderes: [] }; }
     render();
   }
 
@@ -98,9 +143,11 @@ export function montarGrimorio(raiz, { qInicial = "", abrir = null, naUrl = fals
     (!filtro.tipo.size || filtro.tipo.has(m.grupo)) &&
     (!filtro.escola.size || filtro.escola.has(m.escola)) &&
     (!filtro.fonte.size || filtro.fonte.has(fonte));
+  const passaPoder = (p) =>
+    (!filtro.categoria.size || filtro.categoria.has(p.categoria)) &&
+    (!filtro.livro.size || filtro.livro.has(p.livro));
 
-  function render() {
-    lista.replaceChildren();
+  function itensMagias() {
     const itens = [
       ...TUDO.publicadas.filter((m) => passa(m, "mesa")).map((m) => ({ ...m, fonte: "mesa" })),
       ...TUDO.oficiais.filter((m) => passa(m, "oficiais")).map((m) => ({ ...m, fonte: "oficiais" })),
@@ -109,17 +156,36 @@ export function montarGrimorio(raiz, { qInicial = "", abrir = null, naUrl = fals
     itens.sort((a, b) => ord === "circulo" ? a.circulo - b.circulo || a.nome.localeCompare(b.nome)
       : ord === "escola" ? a.escola.localeCompare(b.escola) || a.circulo - b.circulo || a.nome.localeCompare(b.nome)
       : a.nome.localeCompare(b.nome));
+    return itens;
+  }
+  function itensPoderes() {
+    const itens = TUDO.poderes.filter(passaPoder).map((p) => ({ ...p, fonte: "poder" }));
+    const ord = filtro.ord;
+    const pos = (p) => { const i = CATEGORIAS.indexOf(p.categoria); return i < 0 ? 99 : i; };
+    itens.sort((a, b) => ord === "categoria" ? pos(a) - pos(b) || (a.sub || "").localeCompare(b.sub || "") || a.nome.localeCompare(b.nome)
+      : ord === "livro" ? LIVROS.indexOf(a.livro) - LIVROS.indexOf(b.livro) || pos(a) - pos(b) || a.nome.localeCompare(b.nome)
+      : a.nome.localeCompare(b.nome));
+    return itens;
+  }
+
+  function render() {
+    lista.replaceChildren();
+    const poderes = filtro.aba === "poderes";
+    const itens = poderes ? itensPoderes() : itensMagias();
     gravarUrl();
 
-    conta.textContent = `${itens.length} magia${itens.length === 1 ? "" : "s"}`
-      + (TUDO.publicadas.length ? ` · ${itens.filter((m) => m.fonte === "mesa").length} da mesa` : "")
+    const quantos = `${itens.length} ${poderes ? "poder" : "magia"}${itens.length === 1 ? "" : poderes ? "es" : "s"}`;
+    conta.textContent = quantos
+      + (!poderes && TUDO.publicadas.length ? ` · ${itens.filter((m) => m.fonte === "mesa").length} da mesa` : "")
       + " · clique ou arraste pra pôr na mesa";
 
-    if (!itens.length) return lista.append(el("div", { className: "vazio", textContent: "nenhuma magia com esses filtros." }));
+    if (!itens.length) return lista.append(el("div", { className: "vazio", textContent: `nenhum${poderes ? " poder" : "a magia"} com esses filtros.` }));
     let grupo = null;
     for (const m of itens) {
-      // cabeçalho por grupo (círculo ou escola), só quando faz sentido pra ordem escolhida
-      const g = ord === "circulo" ? `${m.circulo}º círculo` : ord === "escola" ? m.escola : null;
+      // cabeçalho por grupo (círculo/escola, ou categoria/livro), só quando faz sentido pra ordem
+      const g = poderes
+        ? (filtro.ord === "categoria" ? m.categoria : filtro.ord === "livro" ? m.livro : null)
+        : (filtro.ord === "circulo" ? `${m.circulo}º círculo` : filtro.ord === "escola" ? m.escola : null);
       if (g !== null && g !== grupo) { grupo = g; lista.append(el("h2", { className: "g-grupo", textContent: g })); }
       const chave = chaveDe(m);
       lista.append(el("div", {
@@ -128,32 +194,37 @@ export function montarGrimorio(raiz, { qInicial = "", abrir = null, naUrl = fals
         onclick: () => mesa.abrir(chave),
         ondragstart: (e) => { e.dataTransfer.setData(TIPO_ARRASTO, chave); e.dataTransfer.effectAllowed = "copy"; },
       },
-        el("span", { className: "circ", textContent: `${m.circulo}º` }),
+        el("span", { className: "circ", textContent: poderes ? (m.custo || "") : `${m.circulo}º` }),
         el("h3", { textContent: m.nome }),
-        el("div", { className: "meta", textContent: `${m.escola} · ${m.grupo}` + (m.autor ? ` · por ${m.autor}` : "") }),
+        el("div", {
+          className: "meta",
+          textContent: poderes ? [m.categoria, m.sub, m.livro].filter(Boolean).join(" · ")
+            : `${m.escola} · ${m.grupo}` + (m.autor ? ` · por ${m.autor}` : ""),
+        }),
       ));
     }
   }
 
-  buscar().then(() => {
+  const pronto = trocarAba(filtro.aba).then(() => {
     if (abrir) {
       const m = [...TUDO.publicadas.map((x) => ({ ...x, fonte: "mesa" })), ...TUDO.oficiais.map((x) => ({ ...x, fonte: "oficiais" }))]
         .find((x) => x.nome === abrir);
       if (m) mesa.abrir(chaveDe(m));
     }
   });
-  return { buscar, busca };
+  return { buscar, busca, pronto };
 }
 
 // bootstrap automático da página / (container #g-pagina); /m/<id> abre a publicada na mesa
 const pagina = document.querySelector("#g-pagina");
 if (pagina) {
   const params = new URLSearchParams(location.search);
-  const g = montarGrimorio(pagina, { qInicial: params.get("q") || "", abrir: params.get("abrir"), naUrl: true });
-  const idM = location.pathname.match(/^\/m\/([a-f0-9]+)/)?.[1];
-  if (idM) mesaGlobal().abrir("p:" + idM);
-  const slugO = location.pathname.match(/^\/o\/([\w-]+)/)?.[1];
-  if (slugO) mesaGlobal().abrir("o:" + slugO);
+  const rota = location.pathname.match(/^\/([mod])\/([\w-]+)/);
+  const g = montarGrimorio(pagina, {
+    qInicial: params.get("q") || "", abrir: params.get("abrir"), naUrl: true,
+    aba: rota?.[1] === "d" ? "poderes" : "magias",
+  });
+  if (rota) mesaGlobal().abrir(`${rota[1] === "m" ? "p" : rota[1]}:${rota[2]}`);
   document.addEventListener("keydown", (e) => {
     if (e.key === "/" && !e.target.closest("input, textarea, [contenteditable]")) { e.preventDefault(); g.busca.focus(); g.busca.select(); }
   });

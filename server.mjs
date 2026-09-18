@@ -185,6 +185,20 @@ async function tratar(req, res) {
     return json(res, 200, { oficiais, publicadas });
   }
 
+  // poderes oficiais: mesma busca do grimório, sobre dados/poderes.json (também fora do repo)
+  if (p === "/api/poderes" && req.method === "GET") {
+    const termos = termosBusca(url.searchParams.get("q"));
+    const poderes = Object.entries(carregarPoderes())
+      .filter(([, t]) => termos.every((alts) => alts.some((x) => blobDe(t).includes(x))))
+      .map(([slug, t]) => ({ slug, nome: t.nome, categoria: t.categoria, sub: t.sub, livro: t.livro, custo: t.custo }));
+    return json(res, 200, { poderes });
+  }
+
+  if (p.startsWith("/api/poder/") && req.method === "GET") {
+    const t = carregarPoderes()[p.slice("/api/poder/".length).replace(/[^\w-]/g, "")];
+    return t ? json(res, 200, t) : json(res, 404, { erro: "sem texto no servidor" });
+  }
+
   if (p === "/grimorio") return estatico(res, join(RAIZ, "static", "grimorio.html"));
 
   // sugestões de aprimoramentos REAIS (busca sobre os 748 oficiais em dados/aprimoramentos.json)
@@ -198,10 +212,11 @@ async function tratar(req, res) {
     return json(res, 200, { sugestoes: sugerirAprimoramentos(f, tratar.aprs) });
   }
 
-  // /m/<id> e /o/<slug>: mesmo grimório, com a magia já aberta na mesa (o id vai pelo pathname);
-  // <title> e Open Graph trocados pra o link ficar bonito no WhatsApp/Discord
-  if (p.startsWith("/m/") || p.startsWith("/o/")) {
+  // /m/<id>, /o/<slug> e /d/<slug> (poder): mesmo grimório, com a carta já aberta na mesa
+  // (o id vai pelo pathname); <title> e Open Graph trocados pra o link ficar bonito no WhatsApp/Discord
+  if (p.startsWith("/m/") || p.startsWith("/o/") || p.startsWith("/d/")) {
     const m = p.startsWith("/m/") ? estado.publicadas[p.slice(3).replace(/[^a-f0-9]/g, "")]
+      : p.startsWith("/d/") ? carregarPoderes()[p.slice(3).replace(/[^\w-]/g, "")]
       : carregarTextos()[p.slice(3).replace(/[^\w-]/g, "")];
     let html = readFileSync(join(RAIZ, "static", "grimorio.html"), "utf-8");
     if (m) {
@@ -227,11 +242,20 @@ function carregarTextos() {
   }
   return carregarTextos.cache;
 }
+// poderes oficiais (dados/poderes.json, gerado por tools/minerar-poderes.mjs)
+function carregarPoderes() {
+  if (!carregarPoderes.cache) {
+    try { carregarPoderes.cache = JSON.parse(readFileSync(join(DADOS, "poderes.json"), "utf-8")); }
+    catch { carregarPoderes.cache = {}; }
+  }
+  return carregarPoderes.cache;
+}
 const norm = (x) => (x || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
-// blob pesquisável por magia oficial, calculado uma vez
+// blob pesquisável por magia OU poder oficial, calculado uma vez (campo que falta entra vazio)
 const blobs = new WeakMap();
 function blobDe(t) {
   if (!blobs.has(t)) blobs.set(t, norm([t.nome, t.linha, t.escola, t.grupo, t.descricao,
+    t.categoria, t.sub, t.livro, t.prereq,
     Object.entries(t.stats || {}).map(([k, v]) => `${k} ${v}`).join(" "),
     (t.aprimoramentos || []).map((a) => a.texto || a).join(" ")].join(" ")));
   return blobs.get(t);
@@ -339,6 +363,17 @@ if (CHECK) {
       // 3º círculo aceito (lista mantém a publicada pra não despublicar)
       const c3 = await fetch(`${base}/api/user/ray`, { method: "PUT", body: JSON.stringify({ magias: [{ ...magia, id: pub.id }, { ...magia, id: "abcd1234", nome: "Teste3", circulo: 3 }] }) });
       if (c3.status !== 200) return falha("devia aceitar 3º círculo: " + (await c3.json()).erro);
+      // poderes: contrato das rotas (sem dados/poderes.json a lista vem vazia, e tudo bem)
+      const pod = await (await fetch(`${base}/api/poderes?q=furia`)).json();
+      if (!Array.isArray(pod.poderes)) return falha("/api/poderes não devolveu lista");
+      if (pod.poderes.length) {
+        const um = pod.poderes[0];
+        const det = await (await fetch(`${base}/api/poder/${um.slug}`)).json();
+        if (det.nome !== um.nome || !det.descricao) return falha("/api/poder/<slug> incompleto");
+        if ((await fetch(`${base}/d/${um.slug}`)).status !== 200) return falha("/d/<slug> fora");
+        const nada = await (await fetch(`${base}/api/poderes?q=zzzznaoexiste`)).json();
+        if (nada.poderes.length) return falha("busca de poder devia filtrar");
+      }
       const idx = await fetch(`${base}/m/${pub.id}`);
       const pagina = await idx.text();
       if (idx.status !== 200 || !pagina.includes("g-pagina")) return falha("/m/ não serviu o grimório");

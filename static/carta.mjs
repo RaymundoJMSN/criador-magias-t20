@@ -139,6 +139,19 @@ export function cartaHtml(m, r) {
     </div>`;
 }
 
+// Carta no MESMO estilo para um PODER oficial (dados de /api/poder/<slug>)
+export function cartaPoderHtml(t) {
+  const stats = [t.prereq && `<b>Pré-requisito:</b> ${esc(t.prereq)}`, t.custo && `<b>Custo:</b> ${esc(t.custo)}`].filter(Boolean);
+  return `
+    <h2>${esc(t.nome)}</h2>
+    <div class="tipo-linha">${esc(t.linha)}</div>
+    <div class="miolo">
+    ${stats.length ? `<div class="stats">${stats.join("; ")}</div>` : ""}
+    <div class="desc">${esc(t.descricao).replace(/\n/g, "<br>")}</div>
+    <div class="assina">${esc(t.publicacao || "")}</div>
+    </div>`;
+}
+
 // Carta no MESMO estilo para uma magia OFICIAL (dados de /api/texto/<slug>)
 export function cartaOficialHtml(t) {
   const aprs = (t.aprimoramentos || []).map((a) =>

@@ -1,7 +1,7 @@
 // Mesa: cartas de magia flutuantes sobre QUALQUER página, tipo janelas na área
 // de trabalho. Singleton por página; as cartas abertas ficam no localStorage e
 // reaparecem quando a pessoa muda de página (grimório ⇄ criador).
-import { cartaHtml, cartaOficialHtml } from "/carta.mjs";
+import { cartaHtml, cartaOficialHtml, cartaPoderHtml } from "/carta.mjs";
 
 const el = (tag, props = {}, ...filhos) => {
   const n = Object.assign(document.createElement(tag), props);
@@ -10,7 +10,7 @@ const el = (tag, props = {}, ...filhos) => {
 };
 
 const LS = "cm_mesa";
-export const TIPO_ARRASTO = "text/x-magia"; // dataTransfer: "o:<slug>" ou "p:<id>"
+export const TIPO_ARRASTO = "text/x-magia"; // dataTransfer: "o:<slug>", "p:<id>" ou "d:<slug>" (poder)
 let mesa;
 
 export function mesaGlobal() {
@@ -44,7 +44,13 @@ export function mesaGlobal() {
       return cartaHtml(m, { total: m.pontos?.gasto ?? "?", orcamento: m.pontos?.orcamento ?? 10, valido: true })
         + `<div class="to-rodape"><a href="/m/${id}">🔗 link desta magia</a></div>`;
     }
-    const t = await (await fetch(`/api/texto/${id.replace(/[^\w-]/g, "")}`)).json();
+    const slug = id.replace(/[^\w-]/g, "");
+    if (tipo === "d") {
+      const d = await (await fetch(`/api/poder/${slug}`)).json();
+      if (d.erro) throw new Error("sem texto");
+      return cartaPoderHtml(d) + `<div class="to-rodape"><a href="/d/${slug}">🔗 link deste poder</a></div>`;
+    }
+    const t = await (await fetch(`/api/texto/${slug}`)).json();
     if (t.erro) throw new Error("sem texto");
     return cartaOficialHtml(t) + `<div class="to-rodape"><a href="/o/${id}">🔗 link desta magia</a></div>`;
   }

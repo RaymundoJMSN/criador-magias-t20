@@ -16,6 +16,28 @@ contra as 275 magias oficiais. Online em [magias.raynathus.com.br](https://magia
   ([`data/exemplos.json`](data/exemplos.json)) — preços derivados das magias oficiais.
   Aprovação final é sempre do mestre.
 
+## Grimório: magias e poderes
+
+A página `/` tem duas abas com o mesmo mecanismo de busca (mesmas palavras,
+mesmos sinônimos, mesma mesa de cartas):
+
+- **magias** — as 275 oficiais + as publicadas pela mesa;
+- **poderes** — 1.612 poderes oficiais (`/api/poderes`), filtráveis por categoria
+  (combate, destino, magia, tormenta, classe, habilidade de classe, racial,
+  origem, concedido, distinção…) e por livro. `/d/<slug>` abre um poder direto.
+
+```
+node tools/minerar-poderes.mjs          # -> dados/poderes.json (local, fora do repo)
+node tools/minerar-poderes.mjs --check  # self-test do parser
+```
+
+Duas fontes, porque nenhuma cobre tudo: o compêndio do sistema Tormenta20 do
+**Foundry** (LevelDB — Livro Básico e Distinções, com categoria, página e PM
+prontos) e os markdowns de **`tormenta-livros`** (Heróis de Arton, Dragão Brasil e
+Deuses de Arton, que compêndio nenhum traz por inteiro). Nome repetido fica com a versão do
+compêndio. Caminhos por env: `FOUNDRY_DIR`, `T20_LIVROS`. O server lê o arquivo uma
+vez e guarda em memória — depois de minerar de novo, reiniciar (o deploy já faz).
+
 ## Mineração / calibração
 
 `tools/` (Python 3 stdlib, sem dependências) minera o dataset de magias e calibra a tabela:
@@ -48,4 +70,5 @@ node server.mjs --check     # self-test
 node test-custo.mjs         # motor de custo
 node test-oficiais.mjs      # 28 oficiais recriadas à mão, com a faixa esperada
 node test-corpus.mjs        # passa as 275 oficiais mineradas pelo motor (0 podem ser bloqueadas)
+node tools/minerar-poderes.mjs --check   # parser dos poderes
 ```

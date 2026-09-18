@@ -10,7 +10,7 @@ scp -r (Join-Path $proj 'static') devilsworks:/home/ubuntu/criador-magias/
 scp -r (Join-Path $proj 'data') devilsworks:/home/ubuntu/criador-magias/
 scp (Join-Path $proj 'deploy/criador-magias.service') devilsworks:/home/ubuntu/criador-magias/deploy/
 # textos oficiais (local-only, nunca no git); só estes arquivos — estado.json dos usuários fica intacto
-foreach ($f in 'dados/textos.json', 'dados/aprimoramentos.json') {
+foreach ($f in 'dados/textos.json', 'dados/aprimoramentos.json', 'dados/poderes.json') {
   if (Test-Path (Join-Path $proj $f)) { scp (Join-Path $proj $f) devilsworks:/home/ubuntu/criador-magias/dados/ }
 }
 ssh devilsworks 'sudo systemctl restart criador-magias && sleep 1 && curl -s -o /dev/null -w "%{http_code}\n" http://127.0.0.1:8070/'

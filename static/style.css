@@ -320,6 +320,9 @@ footer a { color: var(--ouro); }
 .link-ouro:hover { color: var(--ouro-claro); }
 .grimorio-main { max-width: 1100px; margin: 10px auto 0; display: block; }
 .g-busca { width: 100%; margin-bottom: 8px; font-size: 1.05rem; padding: 11px 14px; }
+.g-abas { display: flex; gap: 6px; margin-bottom: 8px; }
+.g-aba { font-family: "Cinzel", serif; letter-spacing: .06em; padding: 7px 16px; font-size: .92rem; }
+.card .circ:empty { display: none; }
 .g-filtros .chips { margin: 4px 0; }
 .grimorio-lista { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 10px; margin-top: 10px; }
 .grimorio-lista .card { cursor: grab; position: relative; padding-right: 44px; }

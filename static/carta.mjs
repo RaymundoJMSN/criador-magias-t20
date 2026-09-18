@@ -1,6 +1,12 @@
 // Renderização da carta de magia — compartilhada entre o app (browser) e o
 // server (página /m/<id>). Sem DOM: sanitização por regex.
 import { circuloEfetivo } from "./custo.mjs";
+import { tipoDePocao, tipoDePocaoDosEixos, nomeDoItem } from "./pocao.mjs";
+
+/** Linha "vira granada de Bola de Fogo" — só aparece quando a magia pode virar item. */
+function linhaPocao(tipo, nome) {
+  return tipo ? `<div class="pocao">🧪 pode virar <b>${esc(nomeDoItem(tipo, nome))}</b></div>` : "";
+}
 
 export const ROTULOS = {
   execucao: { padrao: "padrão", movimento: "movimento", livre: "livre", reacao: "reação", completa: "completa", longa: "ritual (2+ rodadas)" },
@@ -135,6 +141,7 @@ export function cartaHtml(m, r) {
     ${!desc && custom ? `<div class="desc">${custom}</div>` : ""}
     ${ef.length && !desc ? `<div class="efeitos-num">${ef.join("; ")}.</div>` : ""}
     ${aprs ? `<div class="apr">${aprs}</div>` : ""}
+    ${linhaPocao(tipoDePocaoDosEixos(m.eixos?.alvo), m.nome || "esta magia")}
     <div class="assina">${r.total}/${r.orcamento} pontos${r.valido ? "" : r.precisaAval ? " — aval do mestre" : " — ESTOUROU"}${m.autor ? " · por " + esc(m.autor) : ""}</div>
     </div>`;
 }
@@ -163,6 +170,7 @@ export function cartaOficialHtml(t) {
     <div class="stats">${Object.entries(t.stats).map(([k, v]) => `<b>${esc(k)}:</b> ${esc(v)}`).join("; ")}</div>
     <div class="desc">${esc(t.descricao).replace(/\n/g, "<br>")}</div>
     ${aprs ? `<div class="apr">${aprs}</div>` : ""}
+    ${linhaPocao(tipoDePocao(t.stats?.["Alvo/Área"]), t.nome)}
     <div class="assina">${esc(t.publicacao || "")}</div>
     </div>`;
 }

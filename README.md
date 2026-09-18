@@ -21,7 +21,12 @@ contra as 275 magias oficiais. Online em [magias.raynathus.com.br](https://magia
 A página `/` tem duas abas com o mesmo mecanismo de busca (mesmas palavras,
 mesmos sinônimos, mesma mesa de cartas):
 
-- **magias** — as 275 oficiais + as publicadas pela mesa;
+- **magias** — as 275 oficiais + as publicadas pela mesa, com filtro
+  **🧪 permitido em poção** (LB p. 341: só magia com alvo criatura/objeto ou com
+  área vira item de uso único). O nome do frasco muda com o alvo — objeto = óleo,
+  área = granada —, então a carta mostra "pode virar *granada de Bola de Fogo*".
+  A regra é a mesma do módulo `t20-fabricar` ([`static/pocao.mjs`](static/pocao.mjs),
+  `node static/pocao.mjs --check`);
 - **poderes** — 1.612 poderes oficiais (`/api/poderes`), filtráveis por categoria
   (combate, destino, magia, tormenta, classe, habilidade de classe, racial,
   origem, concedido, distinção…) e por livro. `/d/<slug>` abre um poder direto.

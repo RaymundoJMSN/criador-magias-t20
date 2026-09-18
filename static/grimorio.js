@@ -15,6 +15,8 @@ const CIRCULOS = [1, 2, 3, 4, 5];
 const TIPOS = ["Arcana", "Divina", "Universal"];
 const ESCOLAS = ["Abjuração", "Adivinhação", "Convocação", "Encantamento", "Evocação", "Ilusão", "Necromancia", "Transmutação"];
 const FONTES = [["oficiais", "📕 oficiais"], ["mesa", "🔗 da mesa"]];
+// item de uso único (LB p. 341): o nome do frasco muda com o alvo da magia
+const POCOES = [["sim", "🧪 permitido em poção"], ["poção", "poção"], ["óleo", "óleo"], ["granada", "granada"]];
 // poderes: categorias e livros vêm do minerador (tools/minerar-poderes.mjs)
 const CATEGORIAS = ["Combate", "Destino", "Magia", "Tormenta", "Geral", "Grupo", "Classe", "Habilidade", "Racial", "Origem", "Concedido", "Distinção"];
 const LIVROS = ["Livro Básico", "Heróis de Arton", "Dragão Brasil", "Distinções", "Deuses de Arton", "Guia de NPCs"];
@@ -28,12 +30,12 @@ const ORDENS = {
 };
 const PADRAO_ORD = { magias: "circulo", poderes: "categoria" };
 // filtros ⇄ URL (?aba=poderes&q=fogo&c=1,2&t=Arcana&e=Evocação&f=mesa&cat=Combate&liv=…&ord=nome)
-const URL_CHAVES = { circulo: "c", tipo: "t", escola: "e", fonte: "f", categoria: "cat", livro: "liv" };
+const URL_CHAVES = { circulo: "c", tipo: "t", escola: "e", fonte: "f", pocao: "poc", categoria: "cat", livro: "liv" };
 
 export function montarGrimorio(raiz, { qInicial = "", abrir = null, naUrl = false, aba = "magias" } = {}) {
   const mesa = mesaGlobal();
   // filtros multi-seleção (vazio = todos); Arcana e Divina são exclusivas entre si
-  const filtro = { circulo: new Set(), tipo: new Set(), escola: new Set(), fonte: new Set(), categoria: new Set(), livro: new Set(), q: qInicial, ord: PADRAO_ORD[aba], aba };
+  const filtro = { circulo: new Set(), tipo: new Set(), escola: new Set(), fonte: new Set(), pocao: new Set(), categoria: new Set(), livro: new Set(), q: qInicial, ord: PADRAO_ORD[aba], aba };
   if (naUrl) {
     const ps = new URLSearchParams(location.search);
     if (ABAS.some(([a]) => a === ps.get("aba"))) filtro.aba = ps.get("aba");
@@ -120,6 +122,7 @@ export function montarGrimorio(raiz, { qInicial = "", abrir = null, naUrl = fals
       chips(TIPOS, "tipo");
       chips(ESCOLAS, "escola");
       chips(FONTES, "fonte");
+      chips(POCOES, "pocao");
     } else {
       chips(CATEGORIAS, "categoria");
       chips(LIVROS, "livro");
@@ -142,7 +145,8 @@ export function montarGrimorio(raiz, { qInicial = "", abrir = null, naUrl = fals
     (!filtro.circulo.size || filtro.circulo.has(m.circulo)) &&
     (!filtro.tipo.size || filtro.tipo.has(m.grupo)) &&
     (!filtro.escola.size || filtro.escola.has(m.escola)) &&
-    (!filtro.fonte.size || filtro.fonte.has(fonte));
+    (!filtro.fonte.size || filtro.fonte.has(fonte)) &&
+    (!filtro.pocao.size || (m.pocao && (filtro.pocao.has("sim") || filtro.pocao.has(m.pocao))));
   const passaPoder = (p) =>
     (!filtro.categoria.size || filtro.categoria.has(p.categoria)) &&
     (!filtro.livro.size || filtro.livro.has(p.livro));
@@ -199,7 +203,7 @@ export function montarGrimorio(raiz, { qInicial = "", abrir = null, naUrl = fals
         el("div", {
           className: "meta",
           textContent: poderes ? [m.categoria, m.sub, m.livro].filter(Boolean).join(" · ")
-            : `${m.escola} · ${m.grupo}` + (m.autor ? ` · por ${m.autor}` : ""),
+            : [m.escola, m.grupo, m.pocao && `🧪 ${m.pocao}`, m.autor && `por ${m.autor}`].filter(Boolean).join(" · "),
         }),
       ));
     }

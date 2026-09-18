@@ -7,6 +7,7 @@ import { fileURLToPath } from "node:url";
 import { randomBytes } from "node:crypto";
 import { calcular } from "./static/custo.mjs";
 import { esc, htmlParaTexto } from "./static/carta.mjs";
+import { tipoDePocao, tipoDePocaoDosEixos } from "./static/pocao.mjs";
 
 const RAIZ = dirname(fileURLToPath(import.meta.url));
 const DADOS = join(RAIZ, "dados");
@@ -178,10 +179,10 @@ async function tratar(req, res) {
     const bate = (blob) => termos.every((alts) => alts.some((t) => blob.includes(t)));
     const oficiais = Object.entries(textos)
       .filter(([, t]) => bate(blobDe(t)))
-      .map(([slug, t]) => ({ slug, nome: t.nome, escola: t.escola, grupo: t.grupo, circulo: t.circulo }));
+      .map(([slug, t]) => ({ slug, nome: t.nome, escola: t.escola, grupo: t.grupo, circulo: t.circulo, pocao: tipoDePocao(t.stats?.["Alvo/Área"]) }));
     const publicadas = Object.entries(estado.publicadas)
       .filter(([, m]) => bate(norm([m.nome, htmlParaTexto(m.descricao), m.escola, m.tipo, (m.aprimoramentos || []).map((a) => a.texto).join(" "), JSON.stringify(m.eixos || {})].join(" "))))
-      .map(([id, m]) => ({ id, nome: m.nome, escola: m.escola, grupo: m.tipo, circulo: m.circulo || 1, autor: m.autor, pontos: m.pontos }));
+      .map(([id, m]) => ({ id, nome: m.nome, escola: m.escola, grupo: m.tipo, circulo: m.circulo || 1, autor: m.autor, pontos: m.pontos, pocao: tipoDePocaoDosEixos(m.eixos?.alvo) }));
     return json(res, 200, { oficiais, publicadas });
   }
 
@@ -363,6 +364,11 @@ if (CHECK) {
       // 3º círculo aceito (lista mantém a publicada pra não despublicar)
       const c3 = await fetch(`${base}/api/user/ray`, { method: "PUT", body: JSON.stringify({ magias: [{ ...magia, id: pub.id }, { ...magia, id: "abcd1234", nome: "Teste3", circulo: 3 }] }) });
       if (c3.status !== 200) return falha("devia aceitar 3º círculo: " + (await c3.json()).erro);
+      // a lista do grimório diz se a magia vira item de uso único (alvo 1 criatura = poção)
+      const gri = await (await fetch(`${base}/api/grimorio`)).json();
+      const publicada = gri.publicadas.find((x) => x.id === pub.id);
+      if (publicada?.pocao !== "poção") return falha("grimório não marcou a poção: " + publicada?.pocao);
+
       // poderes: contrato das rotas (sem dados/poderes.json a lista vem vazia, e tudo bem)
       const pod = await (await fetch(`${base}/api/poderes?q=furia`)).json();
       if (!Array.isArray(pod.poderes)) return falha("/api/poderes não devolveu lista");

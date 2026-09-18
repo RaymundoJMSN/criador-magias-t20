@@ -26,7 +26,10 @@ mesmos sinônimos, mesma mesa de cartas):
   área vira item de uso único). O nome do frasco muda com o alvo — objeto = óleo,
   área = granada —, então a carta mostra "pode virar *granada de Bola de Fogo*".
   A regra é a mesma do módulo `t20-fabricar` ([`static/pocao.mjs`](static/pocao.mjs),
-  `node static/pocao.mjs --check`);
+  `node static/pocao.mjs --check`). Também tem dropdown de **execução**, **alcance**
+  e **resistência** (por teste *ou* por efeito) — a linha técnica das oficiais é texto
+  livre e passa por [`static/eixos.mjs`](static/eixos.mjs) (`--check`), o mesmo parser
+  que recebe as magias da mesa já traduzidas pelos rótulos da carta;
 - **poderes** — 1.612 poderes oficiais (`/api/poderes`), filtráveis por categoria
   (combate, destino, magia, tormenta, classe, habilidade de classe, racial,
   origem, concedido, distinção…) e por livro. `/d/<slug>` abre um poder direto.

@@ -6,8 +6,16 @@ import { join, dirname, extname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { randomBytes } from "node:crypto";
 import { calcular } from "./static/custo.mjs";
-import { esc, htmlParaTexto } from "./static/carta.mjs";
+import { esc, htmlParaTexto, ROTULOS } from "./static/carta.mjs";
 import { tipoDePocao, tipoDePocaoDosEixos } from "./static/pocao.mjs";
+import { eixosDe } from "./static/eixos.mjs";
+
+// a magia da mesa vira a mesma linha técnica das oficiais, pra cair no mesmo parser
+function eixosDaMesa(e = {}) {
+  const r = e.resistencia;
+  return eixosDe(ROTULOS.execucao[e.execucao], ROTULOS.alcance[e.alcance],
+    !r || r === "nenhuma" ? "nenhuma" : `${e.teste || ""} ${ROTULOS.resistencia[r] || ""}`);
+}
 
 const RAIZ = dirname(fileURLToPath(import.meta.url));
 const DADOS = join(RAIZ, "dados");
@@ -179,10 +187,12 @@ async function tratar(req, res) {
     const bate = (blob) => termos.every((alts) => alts.some((t) => blob.includes(t)));
     const oficiais = Object.entries(textos)
       .filter(([, t]) => bate(blobDe(t)))
-      .map(([slug, t]) => ({ slug, nome: t.nome, escola: t.escola, grupo: t.grupo, circulo: t.circulo, pocao: tipoDePocao(t.stats?.["Alvo/Área"]) }));
+      .map(([slug, t]) => ({ slug, nome: t.nome, escola: t.escola, grupo: t.grupo, circulo: t.circulo, pocao: tipoDePocao(t.stats?.["Alvo/Área"]),
+        ...eixosDe(t.stats?.["Execução"], t.stats?.["Alcance"], t.stats?.["Resistência"]) }));
     const publicadas = Object.entries(estado.publicadas)
       .filter(([, m]) => bate(norm([m.nome, htmlParaTexto(m.descricao), m.escola, m.tipo, (m.aprimoramentos || []).map((a) => a.texto).join(" "), JSON.stringify(m.eixos || {})].join(" "))))
-      .map(([id, m]) => ({ id, nome: m.nome, escola: m.escola, grupo: m.tipo, circulo: m.circulo || 1, autor: m.autor, pontos: m.pontos, pocao: tipoDePocaoDosEixos(m.eixos?.alvo) }));
+      .map(([id, m]) => ({ id, nome: m.nome, escola: m.escola, grupo: m.tipo, circulo: m.circulo || 1, autor: m.autor, pontos: m.pontos, pocao: tipoDePocaoDosEixos(m.eixos?.alvo),
+        ...eixosDaMesa(m.eixos) }));
     return json(res, 200, { oficiais, publicadas });
   }
 

@@ -4,6 +4,7 @@
 // Componente reutilizável: página / (grimório), gaveta lateral do criador.
 // Clicar ou arrastar põe a carta na mesa (quadro.js), em qualquer página.
 import { mesaGlobal, TIPO_ARRASTO } from "/quadro.js";
+import { EXECUCOES, ALCANCES, TESTES, EFEITOS } from "/eixos.mjs";
 
 const el = (tag, props = {}, ...filhos) => {
   const n = Object.assign(document.createElement(tag), props);
@@ -30,12 +31,13 @@ const ORDENS = {
 };
 const PADRAO_ORD = { magias: "circulo", poderes: "categoria" };
 // filtros ⇄ URL (?aba=poderes&q=fogo&c=1,2&t=Arcana&e=Evocação&f=mesa&cat=Combate&liv=…&ord=nome)
-const URL_CHAVES = { circulo: "c", tipo: "t", escola: "e", fonte: "f", pocao: "poc", categoria: "cat", livro: "liv" };
+const URL_CHAVES = { circulo: "c", tipo: "t", escola: "e", fonte: "f", pocao: "poc", exec: "ex", alc: "al", res: "res", categoria: "cat", livro: "liv" };
 
 export function montarGrimorio(raiz, { qInicial = "", abrir = null, naUrl = false, aba = "magias" } = {}) {
   const mesa = mesaGlobal();
   // filtros multi-seleção (vazio = todos); Arcana e Divina são exclusivas entre si
-  const filtro = { circulo: new Set(), tipo: new Set(), escola: new Set(), fonte: new Set(), pocao: new Set(), categoria: new Set(), livro: new Set(), q: qInicial, ord: PADRAO_ORD[aba], aba };
+  const filtro = { circulo: new Set(), tipo: new Set(), escola: new Set(), fonte: new Set(), pocao: new Set(),
+    exec: new Set(), alc: new Set(), res: new Set(), categoria: new Set(), livro: new Set(), q: qInicial, ord: PADRAO_ORD[aba], aba };
   if (naUrl) {
     const ps = new URLSearchParams(location.search);
     if (ABAS.some(([a]) => a === ps.get("aba"))) filtro.aba = ps.get("aba");
@@ -115,6 +117,21 @@ export function montarGrimorio(raiz, { qInicial = "", abrir = null, naUrl = fals
     }
     boxFiltros.append(box);
   }
+  // dropdown de um valor só; guardado num Set pra usar a mesma ida-e-volta de URL dos chips
+  function seletor(chave, titulo, pares, grupos = []) {
+    const opcao = ([v, t]) => el("option", { value: v, textContent: t, selected: filtro[chave].has(v) });
+    const sel = el("select", {
+      className: "g-sel" + (filtro[chave].size ? " on" : ""), title: "filtrar por " + titulo,
+      onchange: (e) => {
+        filtro[chave] = new Set(e.target.value ? [e.target.value] : []);
+        sel.classList.toggle("on", !!e.target.value);   // remontar o box aqui tiraria o foco do próprio select
+        render();
+      },
+    }, el("option", { value: "", textContent: titulo + ": tudo" }), ...pares.map(opcao));
+    for (const [rotulo, ps] of grupos) sel.append(el("optgroup", { label: rotulo }, ...ps.map(opcao)));
+    return sel;
+  }
+
   function montarChips() {
     boxFiltros.replaceChildren();
     if (filtro.aba === "magias") {
@@ -123,6 +140,14 @@ export function montarGrimorio(raiz, { qInicial = "", abrir = null, naUrl = fals
       chips(ESCOLAS, "escola");
       chips(FONTES, "fonte");
       chips(POCOES, "pocao");
+      // eixos técnicos: lista longa demais pra chip, e só um valor por vez faz sentido
+      boxFiltros.append(el("div", { className: "g-selects" },
+        seletor("exec", "execução", EXECUCOES.map((v) => [v, v])),
+        seletor("alc", "alcance", ALCANCES.map((v) => [v, v])),
+        seletor("res", "resistência", [], [
+          ["teste", TESTES.map((v) => ["t:" + v, v])],
+          ["efeito", EFEITOS.map((v) => ["e:" + v, v])],
+        ])));
     } else {
       chips(CATEGORIAS, "categoria");
       chips(LIVROS, "livro");
@@ -146,7 +171,10 @@ export function montarGrimorio(raiz, { qInicial = "", abrir = null, naUrl = fals
     (!filtro.tipo.size || filtro.tipo.has(m.grupo)) &&
     (!filtro.escola.size || filtro.escola.has(m.escola)) &&
     (!filtro.fonte.size || filtro.fonte.has(fonte)) &&
-    (!filtro.pocao.size || (m.pocao && (filtro.pocao.has("sim") || filtro.pocao.has(m.pocao))));
+    (!filtro.pocao.size || (m.pocao && (filtro.pocao.has("sim") || filtro.pocao.has(m.pocao)))) &&
+    (!filtro.exec.size || filtro.exec.has(m.exec)) &&
+    (!filtro.alc.size || filtro.alc.has(m.alc)) &&
+    (!filtro.res.size || filtro.res.has("t:" + m.res) || filtro.res.has("e:" + m.resEf));
   const passaPoder = (p) =>
     (!filtro.categoria.size || filtro.categoria.has(p.categoria)) &&
     (!filtro.livro.size || filtro.livro.has(p.livro));
